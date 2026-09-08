@@ -1,0 +1,6 @@
+{
+  "name": "Sheep Weather",
+  "description": "Minimal-data weather app with cartoon & realistic sheep styles, day/night transitions, moon phases, hourly deep-dive, and 7-day forecast.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
