@@ -13,6 +13,9 @@ interface WeatherDao {
     @Query("SELECT * FROM favorite_locations ORDER BY id ASC")
     fun getAllLocations(): Flow<List<LocationEntity>>
 
+    @Query("SELECT * FROM favorite_locations ORDER BY id ASC")
+    suspend fun getAllLocationsList(): List<LocationEntity>
+
     @Query("SELECT * FROM favorite_locations WHERE isSelected = 1 LIMIT 1")
     suspend fun getSelectedLocation(): LocationEntity?
 

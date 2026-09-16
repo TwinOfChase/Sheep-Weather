@@ -34,6 +34,9 @@ import androidx.compose.material.icons.filled.Grain
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.CircularProgressIndicator
@@ -59,6 +62,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AppStyle
@@ -66,6 +70,7 @@ import com.example.data.model.DailyWeather
 import com.example.data.model.HourlyWeather
 import com.example.data.model.WeatherInfo
 import com.example.ui.WeatherUiState
+import com.example.ui.components.AppCopyrightFooter
 import com.example.ui.components.CartoonSheepCanvas
 import com.example.ui.components.ConditionIcon
 import com.example.ui.components.RealisticWeatherBackdrop
@@ -81,9 +86,16 @@ fun MainWeatherScreen(
     onToggleNight: () -> Unit,
     onRefresh: () -> Unit,
     onSelectLocation: (Long) -> Unit,
-    onAddLocation: (String, String, Double, Double) -> Unit,
+    onAddLocationByName: (String, String?) -> Unit,
     onDeleteLocation: (com.example.data.local.LocationEntity) -> Unit,
     onOpenHourlyDetail: () -> Unit,
+    onOpenSettings: () -> Unit = {},
+    onToggleAutoTheme: (Boolean) -> Unit = {},
+    onSetManualNight: (Boolean) -> Unit = {},
+    onToggleDataTracking: (Boolean) -> Unit = {},
+    onToggleUseCurrentLocation: (Boolean) -> Unit = {},
+    onFetchCurrentLocation: () -> Unit = {},
+    onCloseSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -116,10 +128,18 @@ fun MainWeatherScreen(
                         onSelectLocation(id)
                         coroutineScope.launch { drawerState.close() }
                     },
-                    onAddLocation = onAddLocation,
+                    onAddLocationByName = onAddLocationByName,
                     onDeleteLocation = onDeleteLocation,
                     onClose = {
                         coroutineScope.launch { drawerState.close() }
+                    },
+                    onOpenSettings = {
+                        coroutineScope.launch { drawerState.close() }
+                        onOpenSettings()
+                    },
+                    onUseCurrentLocation = {
+                        coroutineScope.launch { drawerState.close() }
+                        onFetchCurrentLocation()
                     }
                 )
             }
@@ -272,11 +292,31 @@ fun MainWeatherScreen(
                                 }
                             }
                         }
+
+                        // Settings button
+                        Surface(
+                            color = cardBg,
+                            shape = CircleShape,
+                            shadowElevation = 2.dp,
+                            modifier = Modifier
+                                .clickable { onOpenSettings() }
+                                .border(1.dp, cardBorder, CircleShape)
+                                .testTag("open_settings_button")
+                        ) {
+                            Box(modifier = Modifier.padding(8.dp)) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = "Settings",
+                                    tint = textColor,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
 
-            // Data Saver / Cache status indicator
+            // Data Saver / Cache / Privacy status indicator
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -287,29 +327,43 @@ fun MainWeatherScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .background(
-                                color = if (isNight) Color(0xFF064E3B).copy(alpha = 0.5f) else Color(0xFFD1FAE5),
+                                color = if (!uiState.isDataTrackingEnabled) {
+                                    if (isNight) Color(0xFF1E3A8A).copy(alpha = 0.5f) else Color(0xFFE0F2FE)
+                                } else if (isNight) Color(0xFF064E3B).copy(alpha = 0.5f) else Color(0xFFD1FAE5),
                                 shape = RoundedCornerShape(12.dp)
                             )
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.DataSaverOn,
+                            imageVector = if (!uiState.isDataTrackingEnabled) Icons.Default.Security else Icons.Default.DataSaverOn,
                             contentDescription = null,
-                            tint = if (isNight) Color(0xFF34D399) else Color(0xFF059669),
+                            tint = if (!uiState.isDataTrackingEnabled) {
+                                if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7)
+                            } else if (isNight) Color(0xFF34D399) else Color(0xFF059669),
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(5.dp))
                         Text(
-                            text = if (weather?.isFromCache == true) "Data Saver: Cached (${"%.1f".format(weather.dataSizeKb)} KB)" else "Data Saver: Live (${"%.1f".format(weather?.dataSizeKb ?: 3.2)} KB)",
+                            text = if (!uiState.isDataTrackingEnabled) {
+                                "Privacy: Tracking OFF"
+                            } else if (weather?.isFromCache == true) {
+                                "Data Saver: Cached (${"%.1f".format(weather.dataSizeKb)} KB)"
+                            } else {
+                                "Data Saver: Live (${"%.1f".format(weather?.dataSizeKb ?: 3.2)} KB)"
+                            },
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (isNight) Color(0xFFA7F3D0) else Color(0xFF065F46)
+                            color = if (!uiState.isDataTrackingEnabled) {
+                                if (isNight) Color(0xFF93C5FD) else Color(0xFF0369A1)
+                            } else if (isNight) Color(0xFFA7F3D0) else Color(0xFF065F46)
                         )
                     }
 
                     // Night mode status explanation
                     Text(
-                        text = if (isNight) "🌙 Sunset Mode (Eyes Closed)" else "☀️ Day Mode",
+                        text = if (!uiState.isAutoThemeEnabled) {
+                            if (isNight) "🌙 Fixed Dark" else "☀️ Fixed Light"
+                        } else if (isNight) "🌙 Auto Night" else "☀️ Auto Day",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = subTextColor
@@ -327,7 +381,8 @@ fun MainWeatherScreen(
                 )
             }
 
-            // Primary Weather Metrics & Real Feel Hero Card
+            // Primary Temperature Hero Card:
+            // "Combine Real Feel and Actual Temperature sections into just Temperature displaying both"
             if (weather != null) {
                 item {
                     Surface(
@@ -337,79 +392,117 @@ fun MainWeatherScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
+                            .testTag("temperature_hero_card")
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(18.dp)
                         ) {
-                            // High-contrast primary metric row
+                            // High-contrast primary metric row with "Temperature" title
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column {
-                                    Text(
-                                        text = "${weather.current.temperature.toInt()}°C",
-                                        fontSize = 46.sp,
-                                        fontWeight = FontWeight.Black,
-                                        color = textColor,
-                                        letterSpacing = (-1.5).sp
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Thermostat,
+                                        contentDescription = "Temperature",
+                                        tint = if (isNight) Color(0xFFFF9F1C) else Color(0xFFEA580C),
+                                        modifier = Modifier.size(22.dp)
                                     )
-                                    // Prominent Real Feel
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier
-                                            .background(
-                                                color = if (isNight) Color(0xFF7C2D12).copy(alpha = 0.5f) else Color(0xFFFEF3C7),
-                                                shape = RoundedCornerShape(10.dp)
-                                            )
-                                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.DeviceThermostat,
-                                            contentDescription = "Real Feel",
-                                            tint = if (isNight) Color(0xFFFFB74D) else Color(0xFFB45309),
-                                            modifier = Modifier.size(15.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "Real Feel ${weather.current.realFeel.toInt()}°C",
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isNight) Color(0xFFFFCC80) else Color(0xFF92400E)
-                                        )
-                                    }
-                                }
-
-                                Column(horizontalAlignment = Alignment.End) {
-                                    ConditionIcon(
-                                        weatherCode = weather.current.weatherCode,
-                                        isDay = !isNight,
-                                        size = 54.dp
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = weather.current.conditionDescription,
-                                        fontSize = 15.sp,
+                                        text = "Temperature",
+                                        fontSize = 18.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = textColor
                                     )
                                 }
+
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    ConditionIcon(
+                                        weatherCode = weather.current.weatherCode,
+                                        isDay = !isNight,
+                                        size = 36.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = weather.current.conditionDescription,
+                                        fontSize = 13.5.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = subTextColor
+                                    )
+                                }
                             }
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(14.dp))
 
-                            // Grid of secondary metrics: Wind, Humidity, UV, Cloud
+                            // Combined Temperature Box displaying both Actual and Real Feel side-by-side
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .background(
-                                        color = if (isNight) Color(0xFF1C2B4E) else Color(0xFFF1F5F9),
-                                        shape = RoundedCornerShape(16.dp)
+                                        color = if (isNight) Color(0xFF1E2D52) else Color(0xFFF1F5F9),
+                                        shape = RoundedCornerShape(18.dp)
                                     )
-                                    .padding(vertical = 12.dp),
+                                    .padding(vertical = 12.dp, horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.SpaceAround,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Actual Temperature Display
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "ACTUAL",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = subTextColor,
+                                        letterSpacing = 0.6.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "${weather.current.temperature.toInt()}°C",
+                                        fontSize = 36.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = textColor,
+                                        letterSpacing = (-1.2).sp
+                                    )
+                                }
+
+                                // Subtle divider
+                                Box(
+                                    modifier = Modifier
+                                        .height(38.dp)
+                                        .width(1.dp)
+                                        .background(if (isNight) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.1f))
+                                )
+
+                                // Real Feel Display
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "REAL FEEL",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isNight) Color(0xFFFFB74D) else Color(0xFFD97706),
+                                        letterSpacing = 0.6.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "${weather.current.realFeel.toInt()}°C",
+                                        fontSize = 36.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = if (isNight) Color(0xFFFFB74D) else Color(0xFFD97706),
+                                        letterSpacing = (-1.2).sp
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            // Grid of secondary metrics: Wind, Humidity, UV, Rain Prob
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceAround
                             ) {
                                 QuickMetricItem(
@@ -436,6 +529,155 @@ fun MainWeatherScreen(
                                     value = "${weather.hourly.firstOrNull()?.precipitationProbability ?: 10}%",
                                     isNight = isNight
                                 )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Sunset & Sunrise Section:
+            // "Add a sunset/sunrise function"
+            if (weather != null) {
+                item {
+                    Surface(
+                        color = cardBg,
+                        shape = RoundedCornerShape(24.dp),
+                        shadowElevation = 3.dp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
+                            .testTag("sunrise_sunset_card")
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(18.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.WbSunny,
+                                        contentDescription = "Sun Cycle",
+                                        tint = Color(0xFFF59E0B),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Sunrise & Sunset",
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = textColor
+                                    )
+                                }
+                                Text(
+                                    text = "Local Solar Times",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = subTextColor
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                // Sunrise Box
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = if (isNight) Color(0xFF1E2D52) else Color(0xFFFFFBEB),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp,
+                                        if (isNight) Color(0xFFF59E0B).copy(alpha = 0.35f) else Color(0xFFFDE68A)
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(14.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(38.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFFFEF3C7)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.WbSunny,
+                                                contentDescription = "Sunrise",
+                                                tint = Color(0xFFD97706),
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column {
+                                            Text(
+                                                text = "Sunrise",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = subTextColor
+                                            )
+                                            Text(
+                                                text = weather.current.sunrise,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = textColor
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // Sunset Box
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = if (isNight) Color(0xFF1E2D52) else Color(0xFFFFF7ED),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp,
+                                        if (isNight) Color(0xFFF97316).copy(alpha = 0.35f) else Color(0xFFFFEDD5)
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(14.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(38.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFFFFEDD5)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.NightsStay,
+                                                contentDescription = "Sunset",
+                                                tint = Color(0xFFEA580C),
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column {
+                                            Text(
+                                                text = "Sunset",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = subTextColor
+                                            )
+                                            Text(
+                                                text = weather.current.sunset,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = textColor
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -558,13 +800,31 @@ fun MainWeatherScreen(
                 }
             }
 
-            // Bottom space
+            // Bottom space and Mandatory Copyright
             item {
-                Spacer(modifier = Modifier.height(24.dp))
+                AppCopyrightFooter(isNight = isNight)
+                Spacer(modifier = Modifier.height(20.dp))
             }
         }
     }
 }
+
+    // Settings Dialog overlay
+    if (uiState.isSettingsOpen) {
+        SettingsDialog(
+            isNight = isNight,
+            isAutoThemeEnabled = uiState.isAutoThemeEnabled,
+            isManualNight = uiState.isManualNight,
+            isDataTrackingEnabled = uiState.isDataTrackingEnabled,
+            isUseCurrentLocationEnabled = uiState.isUseCurrentLocationEnabled,
+            onToggleAutoTheme = onToggleAutoTheme,
+            onSetManualNight = onSetManualNight,
+            onToggleDataTracking = onToggleDataTracking,
+            onToggleUseCurrentLocation = onToggleUseCurrentLocation,
+            onDetectCurrentLocation = onFetchCurrentLocation,
+            onDismiss = onCloseSettings
+        )
+    }
 }
 
 @Composable
@@ -601,12 +861,14 @@ private fun HourlyStripCard(
                 color = if (isNight) Color.White else Color(0xFF0F172A)
             )
             Spacer(modifier = Modifier.height(3.dp))
-            // Real Feel indicator in strip with increased font size
+            // Real Feel indicator in strip - cleanly abbreviated so it always fits on one line
             Text(
-                text = "rf ${hour.realFeel.toInt()}°",
+                text = "RF ${hour.realFeel.toInt()}°",
                 fontSize = 12.5.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = if (isNight) Color(0xFFFFB74D) else Color(0xFFD97706)
+                fontWeight = FontWeight.Bold,
+                color = if (isNight) Color(0xFFFFB74D) else Color(0xFFD97706),
+                maxLines = 1,
+                softWrap = false
             )
         }
     }
@@ -668,18 +930,11 @@ private fun DailyForecastRow(
             }
         }
 
-        // Temperatures: Real feel and Min / Max
+        // Temperatures: Min / Max (Real Feel removed from other condition displays)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.End
         ) {
-            Text(
-                text = "Feels ${day.realFeelMax.toInt()}°",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                color = if (isNight) Color(0xFFFFB74D) else Color(0xFFD97706),
-                modifier = Modifier.padding(end = 12.dp)
-            )
             Text(
                 text = "${day.tempMin.toInt()}°",
                 fontSize = 14.sp,

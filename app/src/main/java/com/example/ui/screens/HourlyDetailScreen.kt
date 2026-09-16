@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.HourlyConditionType
 import com.example.data.model.HourlyWeather
 import com.example.data.model.WeatherInfo
+import com.example.ui.components.AppCopyrightFooter
 import com.example.ui.components.ConditionIcon
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -296,13 +297,15 @@ fun HourlyDetailScreen(
                                         color = subTextColor,
                                         maxLines = 1
                                     )
-                                    // Secondary context (e.g. Real feel if showing temp)
-                                    if (selectedCondition != HourlyConditionType.REAL_FEEL) {
+                                    // Show Real Feel ONLY when Temperature is selected
+                                    if (selectedCondition == HourlyConditionType.TEMPERATURE) {
                                         Text(
                                             text = "Feels ${hour.realFeel.toInt()}°C",
-                                            fontSize = 13.sp,
+                                            fontSize = 12.5.sp,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = if (isNight) Color(0xFFFFB74D) else Color(0xFFD97706)
+                                            color = if (isNight) Color(0xFFFFB74D) else Color(0xFFD97706),
+                                            maxLines = 1,
+                                            softWrap = false
                                         )
                                     }
                                 }
@@ -345,6 +348,12 @@ fun HourlyDetailScreen(
                         }
                     }
                 }
+
+                // Mandatory Copyright at the bottom of the screen
+                item {
+                    AppCopyrightFooter(isNight = isNight)
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
         }
     }
@@ -367,7 +376,6 @@ private fun MetricStatItem(
 private fun getMetricValue(hourly: HourlyWeather, type: HourlyConditionType): Double {
     return when (type) {
         HourlyConditionType.TEMPERATURE -> hourly.temperature
-        HourlyConditionType.REAL_FEEL -> hourly.realFeel
         HourlyConditionType.PRECIPITATION -> hourly.precipitationProbability.toDouble()
         HourlyConditionType.WIND_SPEED -> hourly.windSpeed
         HourlyConditionType.HUMIDITY -> hourly.humidity.toDouble()
@@ -379,7 +387,7 @@ private fun getMetricValue(hourly: HourlyWeather, type: HourlyConditionType): Do
 private fun formatVal(value: Double, type: HourlyConditionType): String {
     return when (type) {
         HourlyConditionType.UV_INDEX -> "%.1f".format(value)
-        HourlyConditionType.TEMPERATURE, HourlyConditionType.REAL_FEEL -> "${value.toInt()}"
+        HourlyConditionType.TEMPERATURE -> "${value.toInt()}"
         HourlyConditionType.WIND_SPEED -> "%.0f".format(value)
         else -> "${value.toInt()}"
     }
@@ -388,7 +396,6 @@ private fun formatVal(value: Double, type: HourlyConditionType): String {
 private fun getConditionChipIcon(type: HourlyConditionType): ImageVector {
     return when (type) {
         HourlyConditionType.TEMPERATURE -> Icons.Default.Thermostat
-        HourlyConditionType.REAL_FEEL -> Icons.Default.DeviceThermostat
         HourlyConditionType.PRECIPITATION -> Icons.Default.Grain
         HourlyConditionType.WIND_SPEED -> Icons.Default.Air
         HourlyConditionType.HUMIDITY -> Icons.Default.WaterDrop
@@ -400,7 +407,6 @@ private fun getConditionChipIcon(type: HourlyConditionType): ImageVector {
 private fun getConditionColors(type: HourlyConditionType, isNight: Boolean): List<Color> {
     return when (type) {
         HourlyConditionType.TEMPERATURE -> listOf(Color(0xFFFF9F1C), Color(0xFFFF4040))
-        HourlyConditionType.REAL_FEEL -> listOf(Color(0xFFFFB74D), Color(0xFFF57C00))
         HourlyConditionType.PRECIPITATION -> listOf(Color(0xFF48CAE4), Color(0xFF0077B6))
         HourlyConditionType.WIND_SPEED -> listOf(Color(0xFF64DFDF), Color(0xFF48BFE3))
         HourlyConditionType.HUMIDITY -> listOf(Color(0xFF00B4D8), Color(0xFF0077B6))

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DataSaverOn
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -49,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.LocationEntity
+import com.example.ui.components.AppCopyrightFooter
 
 @Composable
 fun LocationsDrawerContent(
@@ -56,9 +58,11 @@ fun LocationsDrawerContent(
     selectedLocationId: Long,
     isNight: Boolean,
     onSelectLocation: (Long) -> Unit,
-    onAddLocation: (String, String, Double, Double) -> Unit,
+    onAddLocationByName: (String, String?) -> Unit,
     onDeleteLocation: (LocationEntity) -> Unit,
     onClose: () -> Unit,
+    onOpenSettings: () -> Unit = {},
+    onUseCurrentLocation: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
@@ -98,7 +102,7 @@ fun LocationsDrawerContent(
                         color = textColor
                     )
                     Text(
-                        text = "Slide-out Menu • v2.1",
+                        text = "Slide-out Menu • v2.2",
                         fontSize = 11.sp,
                         color = subTextColor
                     )
@@ -138,11 +142,49 @@ fun LocationsDrawerContent(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Data Saver Active: Cached locally in Room DB. Low network usage.",
+                text = "Zero background refresh. Cached in local Room DB.",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
                 color = if (isNight) Color(0xFFA7F3D0) else Color(0xFF065F46)
             )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Use Current Location Button
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = if (isNight) Color(0xFF1E3A8A).copy(alpha = 0.6f) else Color(0xFFE0F2FE),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onUseCurrentLocation() }
+                .testTag("drawer_use_current_location")
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = null,
+                    tint = if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7),
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = "Use Current Location",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = textColor
+                    )
+                    Text(
+                        text = "One-shot GPS detection",
+                        fontSize = 10.5.sp,
+                        color = subTextColor
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -214,7 +256,7 @@ fun LocationsDrawerContent(
                                     color = textColor
                                 )
                                 Text(
-                                    text = "${loc.country} (${"%.2f".format(loc.latitude)}, ${"%.2f".format(loc.longitude)})",
+                                    text = loc.country,
                                     fontSize = 11.sp,
                                     color = subTextColor
                                 )
@@ -254,7 +296,7 @@ fun LocationsDrawerContent(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Add New Location Action Button
+        // Add New Location Action Button (No lat/long needed!)
         Button(
             onClick = { showAddDialog = true },
             modifier = Modifier
@@ -271,15 +313,43 @@ fun LocationsDrawerContent(
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
-            Text(text = "Add Custom City", fontWeight = FontWeight.Bold)
+            Text(text = "Add City by Name", fontWeight = FontWeight.Bold)
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Settings Action Button
+        Button(
+            onClick = onOpenSettings,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("drawer_settings_button"),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (isNight) Color(0xFF1E293B) else Color(0xFFE2E8F0),
+                contentColor = textColor
+            ),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(text = "Settings & Privacy", fontWeight = FontWeight.SemiBold)
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Mandatory Copyright at the bottom of the drawer
+        AppCopyrightFooter(isNight = isNight)
     }
 
     if (showAddDialog) {
-        AddLocationDrawerDialog(
+        AddCityDrawerDialog(
             isNight = isNight,
-            onAdd = { name, country, lat, lon ->
-                onAddLocation(name, country, lat, lon)
+            onAdd = { name, country ->
+                onAddLocationByName(name, country)
                 showAddDialog = false
             },
             onDismiss = { showAddDialog = false }
@@ -288,33 +358,40 @@ fun LocationsDrawerContent(
 }
 
 @Composable
-private fun AddLocationDrawerDialog(
+private fun AddCityDrawerDialog(
     isNight: Boolean,
-    onAdd: (String, String, Double, Double) -> Unit,
+    onAdd: (String, String?) -> Unit,
     onDismiss: () -> Unit
 ) {
     var cityName by remember { mutableStateOf("") }
     var countryName by remember { mutableStateOf("") }
-    var latText by remember { mutableStateOf("") }
-    var lonText by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val popularSuggestions = listOf(
-        Triple("Berlin", "Germany", 52.5200 to 13.4050),
-        Triple("Rome", "Italy", 41.9028 to 12.4964),
-        Triple("Seoul", "South Korea", 37.5665 to 126.9780),
-        Triple("Toronto", "Canada", 43.6532 to -79.3832),
-        Triple("Auckland", "New Zealand", -36.8485 to 174.7633)
+        "Tokyo" to "Japan",
+        "Paris" to "France",
+        "London" to "United Kingdom",
+        "Rome" to "Italy",
+        "Berlin" to "Germany",
+        "Sydney" to "Australia",
+        "Toronto" to "Canada",
+        "Auckland" to "New Zealand"
     )
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = "Add City", fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = "No coordinates needed. Simply enter any city name worldwide:",
+                    fontSize = 12.sp,
+                    color = if (isNight) Color(0xFF94A3B8) else Color(0xFF64748B)
+                )
+
                 Text(
                     text = "Quick suggestions:",
-                    fontSize = 12.sp,
+                    fontSize = 11.5.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.Gray
                 )
@@ -322,15 +399,13 @@ private fun AddLocationDrawerDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    popularSuggestions.take(3).forEach { (city, country, coords) ->
+                    popularSuggestions.take(3).forEach { (city, country) ->
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = if (isNight) Color(0xFF334155) else Color(0xFFE2E8F0),
                             modifier = Modifier.clickable {
                                 cityName = city
                                 countryName = country
-                                latText = coords.first.toString()
-                                lonText = coords.second.toString()
                             }
                         ) {
                             Text(
@@ -343,38 +418,23 @@ private fun AddLocationDrawerDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
-
                 OutlinedTextField(
                     value = cityName,
-                    onValueChange = { cityName = it },
-                    label = { Text("City Name (e.g. Rome)") },
+                    onValueChange = {
+                        cityName = it
+                        if (errorMessage != null) errorMessage = null
+                    },
+                    label = { Text("City Name (e.g. Paris, Tokyo, Berlin)") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().testTag("input_city_name")
                 )
                 OutlinedTextField(
                     value = countryName,
                     onValueChange = { countryName = it },
-                    label = { Text("Country (e.g. Italy)") },
+                    label = { Text("Country (Optional, e.g. France)") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().testTag("input_country_name")
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = latText,
-                        onValueChange = { latText = it },
-                        label = { Text("Latitude") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f).testTag("input_latitude")
-                    )
-                    OutlinedTextField(
-                        value = lonText,
-                        onValueChange = { lonText = it },
-                        label = { Text("Longitude") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f).testTag("input_longitude")
-                    )
-                }
 
                 if (errorMessage != null) {
                     Text(text = errorMessage!!, color = Color.Red, fontSize = 12.sp)
@@ -384,19 +444,15 @@ private fun AddLocationDrawerDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val lat = latText.toDoubleOrNull()
-                    val lon = lonText.toDoubleOrNull()
                     if (cityName.isBlank()) {
-                        errorMessage = "Please enter city name"
-                    } else if (lat == null || lon == null) {
-                        errorMessage = "Please enter valid coordinates"
+                        errorMessage = "Please enter a city name"
                     } else {
-                        onAdd(cityName.trim(), countryName.trim().ifEmpty { "Global" }, lat, lon)
+                        onAdd(cityName.trim(), countryName.trim().ifEmpty { null })
                     }
                 },
                 modifier = Modifier.testTag("confirm_add_location")
             ) {
-                Text("Add Location")
+                Text("Add City")
             }
         },
         dismissButton = {

@@ -14,9 +14,16 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.WeatherScreen
 import com.example.ui.WeatherViewModel
+import com.example.ui.screens.AnimatedSplashScreen
 import com.example.ui.screens.HourlyDetailScreen
 import com.example.ui.screens.MainWeatherScreen
 import com.example.ui.theme.MyApplicationTheme
+
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 
 class MainActivity : ComponentActivity() {
     private val viewModel: WeatherViewModel by viewModels()
@@ -29,33 +36,55 @@ class MainActivity : ComponentActivity() {
 
             MyApplicationTheme(darkTheme = uiState.isNightEffective, dynamicColor = false) {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    when (uiState.currentScreen) {
-                        WeatherScreen.Main -> {
-                            MainWeatherScreen(
-                                uiState = uiState,
-                                onToggleStyle = { viewModel.toggleAppStyle() },
-                                onToggleNight = { viewModel.toggleNightMode() },
-                                onRefresh = { viewModel.refreshWeather() },
-                                onSelectLocation = { viewModel.selectLocation(it) },
-                                onAddLocation = { name, country, lat, lon ->
-                                    viewModel.addLocation(name, country, lat, lon)
-                                },
-                                onDeleteLocation = { viewModel.deleteLocation(it) },
-                                onOpenHourlyDetail = { viewModel.navigateToHourlyDetail() }
+                    AnimatedContent(
+                        targetState = uiState.isSplashVisible,
+                        transitionSpec = {
+                            fadeIn(animationSpec = tween(600)) togetherWith fadeOut(animationSpec = tween(400))
+                        },
+                        label = "appOpeningTransition"
+                    ) { isSplash ->
+                        if (isSplash) {
+                            AnimatedSplashScreen(
+                                isNight = uiState.isNightEffective,
+                                onAnimationFinished = { viewModel.dismissSplash() }
                             )
-                        }
-                        WeatherScreen.HourlyDetail -> {
-                            BackHandler {
-                                viewModel.navigateBackToMain()
-                            }
-                            if (uiState.weatherInfo != null) {
-                                HourlyDetailScreen(
-                                    weatherInfo = uiState.weatherInfo!!,
-                                    isNight = uiState.isNightEffective,
-                                    onBack = { viewModel.navigateBackToMain() }
-                                )
-                            } else {
-                                viewModel.navigateBackToMain()
+                        } else {
+                            when (uiState.currentScreen) {
+                                WeatherScreen.Main -> {
+                                    MainWeatherScreen(
+                                        uiState = uiState,
+                                        onToggleStyle = { viewModel.toggleAppStyle() },
+                                        onToggleNight = { viewModel.toggleNightMode() },
+                                        onRefresh = { viewModel.refreshWeather() },
+                                        onSelectLocation = { viewModel.selectLocation(it) },
+                                        onAddLocationByName = { name, country ->
+                                            viewModel.addLocationByName(name, country)
+                                        },
+                                        onDeleteLocation = { viewModel.deleteLocation(it) },
+                                        onOpenHourlyDetail = { viewModel.navigateToHourlyDetail() },
+                                        onOpenSettings = { viewModel.openSettings() },
+                                        onToggleAutoTheme = { viewModel.toggleAutoTheme(it) },
+                                        onSetManualNight = { viewModel.setManualNightMode(it) },
+                                        onToggleDataTracking = { viewModel.toggleDataTracking(it) },
+                                        onToggleUseCurrentLocation = { viewModel.toggleUseCurrentLocation(it) },
+                                        onFetchCurrentLocation = { viewModel.fetchDeviceLocation() },
+                                        onCloseSettings = { viewModel.closeSettings() }
+                                    )
+                                }
+                                WeatherScreen.HourlyDetail -> {
+                                    BackHandler {
+                                        viewModel.navigateBackToMain()
+                                    }
+                                    if (uiState.weatherInfo != null) {
+                                        HourlyDetailScreen(
+                                            weatherInfo = uiState.weatherInfo!!,
+                                            isNight = uiState.isNightEffective,
+                                            onBack = { viewModel.navigateBackToMain() }
+                                        )
+                                    } else {
+                                        viewModel.navigateBackToMain()
+                                    }
+                                }
                             }
                         }
                     }

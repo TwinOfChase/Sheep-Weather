@@ -54,13 +54,15 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.local.LocationEntity
 
+import com.example.ui.components.AppCopyrightFooter
+
 @Composable
 fun LocationsDialog(
     locations: List<LocationEntity>,
     selectedLocationId: Long,
     isNight: Boolean,
     onSelectLocation: (Long) -> Unit,
-    onAddLocation: (String, String, Double, Double) -> Unit,
+    onAddLocationByName: (String, String?) -> Unit,
     onDeleteLocation: (LocationEntity) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -142,7 +144,7 @@ fun LocationsDialog(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Minimal Mobile Data: Cached in local Room DB. Only ~3 KB per refresh.",
+                        text = "Minimal Mobile Data: Cached in local Room DB. No background sync.",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = if (isNight) Color(0xFFA7F3D0) else Color(0xFF065F46)
@@ -205,7 +207,7 @@ fun LocationsDialog(
                                             color = textColor
                                         )
                                         Text(
-                                            text = "${loc.country} (${"%.2f".format(loc.latitude)}, ${"%.2f".format(loc.longitude)})",
+                                            text = loc.country,
                                             fontSize = 11.sp,
                                             color = subTextColor
                                         )
@@ -259,17 +261,22 @@ fun LocationsDialog(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "Add Custom Location", fontWeight = FontWeight.Bold)
+                    Text(text = "Add City by Name", fontWeight = FontWeight.Bold)
                 }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Mandatory Copyright footer at bottom of dialog
+                AppCopyrightFooter(isNight = isNight)
             }
         }
     }
 
     if (showAddDialog) {
-        AddLocationSubDialog(
+        AddCitySubDialog(
             isNight = isNight,
-            onAdd = { name, country, lat, lon ->
-                onAddLocation(name, country, lat, lon)
+            onAdd = { name, country ->
+                onAddLocationByName(name, country)
                 showAddDialog = false
             },
             onDismiss = { showAddDialog = false }
@@ -278,50 +285,44 @@ fun LocationsDialog(
 }
 
 @Composable
-private fun AddLocationSubDialog(
+private fun AddCitySubDialog(
     isNight: Boolean,
-    onAdd: (String, String, Double, Double) -> Unit,
+    onAdd: (String, String?) -> Unit,
     onDismiss: () -> Unit
 ) {
     var cityName by remember { mutableStateOf("") }
     var countryName by remember { mutableStateOf("") }
-    var latText by remember { mutableStateOf("") }
-    var lonText by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // Quick suggestions for fast adding
     val popularSuggestions = listOf(
-        Triple("Berlin", "Germany", 52.5200 to 13.4050),
-        Triple("Rome", "Italy", 41.9028 to 12.4964),
-        Triple("Seoul", "South Korea", 37.5665 to 126.9780),
-        Triple("Toronto", "Canada", 43.6532 to -79.3832),
-        Triple("Auckland", "New Zealand", -36.8485 to 174.7633)
+        "Tokyo" to "Japan",
+        "Paris" to "France",
+        "London" to "United Kingdom",
+        "Rome" to "Italy",
+        "Berlin" to "Germany"
     )
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = "Add Location", fontWeight = FontWeight.Bold) },
+        title = { Text(text = "Add City", fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "Quick add popular city:",
+                    text = "No coordinates needed. Search any city name:",
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.Gray
+                    color = if (isNight) Color(0xFF94A3B8) else Color(0xFF64748B)
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    popularSuggestions.take(3).forEach { (city, country, coords) ->
+                    popularSuggestions.take(3).forEach { (city, country) ->
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = if (isNight) Color(0xFF334155) else Color(0xFFE2E8F0),
                             modifier = Modifier.clickable {
                                 cityName = city
                                 countryName = country
-                                latText = coords.first.toString()
-                                lonText = coords.second.toString()
                             }
                         ) {
                             Text(
@@ -338,34 +339,21 @@ private fun AddLocationSubDialog(
 
                 OutlinedTextField(
                     value = cityName,
-                    onValueChange = { cityName = it },
-                    label = { Text("City Name (e.g. Rome)") },
+                    onValueChange = {
+                        cityName = it
+                        if (errorMessage != null) errorMessage = null
+                    },
+                    label = { Text("City Name (e.g. Rome, Tokyo)") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().testTag("input_city_name")
                 )
                 OutlinedTextField(
                     value = countryName,
                     onValueChange = { countryName = it },
-                    label = { Text("Country (e.g. Italy)") },
+                    label = { Text("Country (Optional, e.g. Italy)") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().testTag("input_country_name")
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = latText,
-                        onValueChange = { latText = it },
-                        label = { Text("Latitude") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f).testTag("input_latitude")
-                    )
-                    OutlinedTextField(
-                        value = lonText,
-                        onValueChange = { lonText = it },
-                        label = { Text("Longitude") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f).testTag("input_longitude")
-                    )
-                }
 
                 if (errorMessage != null) {
                     Text(text = errorMessage!!, color = Color.Red, fontSize = 12.sp)
@@ -375,19 +363,15 @@ private fun AddLocationSubDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val lat = latText.toDoubleOrNull()
-                    val lon = lonText.toDoubleOrNull()
                     if (cityName.isBlank()) {
                         errorMessage = "Please enter city name"
-                    } else if (lat == null || lon == null) {
-                        errorMessage = "Please enter valid latitude and longitude"
                     } else {
-                        onAdd(cityName.trim(), countryName.trim().ifEmpty { "Global" }, lat, lon)
+                        onAdd(cityName.trim(), countryName.trim().ifEmpty { null })
                     }
                 },
                 modifier = Modifier.testTag("confirm_add_location")
             ) {
-                Text("Add Location")
+                Text("Add City")
             }
         },
         dismissButton = {

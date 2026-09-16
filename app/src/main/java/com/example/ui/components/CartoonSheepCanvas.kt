@@ -89,27 +89,27 @@ fun CartoonSheepCanvas(
 
             if (isNight) {
                 // Calming starry night sky
-                drawStars(w, h * 0.35f)
-                // Gentle crescent moon in the night sky
-                drawNightMoon(w * 0.82f, h * 0.09f, 26f)
+                drawStars(w, h * 0.40f)
+                // Gentle crescent moon in the night sky - moved down below control buttons
+                drawNightMoon(w * 0.82f, h * 0.16f, 26f)
             } else {
-                // Daytime gentle golden sun glow
+                // Daytime gentle golden sun glow - moved down below control buttons
                 drawCircle(
                     color = Color(0xFFFFD166).copy(alpha = 0.35f),
                     radius = 55f,
-                    center = Offset(w * 0.82f, h * 0.09f)
+                    center = Offset(w * 0.82f, h * 0.16f)
                 )
                 drawCircle(
                     color = Color(0xFFFFE066),
                     radius = 32f,
-                    center = Offset(w * 0.82f, h * 0.09f)
+                    center = Offset(w * 0.82f, h * 0.16f)
                 )
             }
 
             // 2. Cartoon Sheep in the upper backdrop
-            // Centered horizontally, situated in top 35% of the screen
+            // Moved down comfortably so it is never covered by top control buttons
             val sheepCenterX = w * 0.5f
-            val sheepCenterY = h * 0.20f + breathingOffset
+            val sheepCenterY = h * 0.26f + breathingOffset
             val sheepScale = (w / 380f).coerceIn(0.95f, 1.30f)
 
             drawCartoonSheep(
@@ -128,19 +128,19 @@ fun CartoonSheepCanvas(
                     plainBlurColor.copy(alpha = 0.95f),
                     plainBlurColor
                 ),
-                startY = h * 0.35f,
-                endY = h * 0.50f
+                startY = h * 0.40f,
+                endY = h * 0.55f
             )
             drawRect(
                 brush = plainVeil,
-                topLeft = Offset(0f, h * 0.35f),
-                size = Size(w, h * 0.65f)
+                topLeft = Offset(0f, h * 0.40f),
+                size = Size(w, h * 0.60f)
             )
         }
     }
 }
 
-private fun DrawScope.drawCartoonSheep(
+internal fun DrawScope.drawCartoonSheep(
     centerX: Float,
     centerY: Float,
     scale: Float,

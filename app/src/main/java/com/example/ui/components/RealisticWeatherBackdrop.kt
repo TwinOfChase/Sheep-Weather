@@ -33,7 +33,7 @@ fun RealisticWeatherBackdrop(
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
-        // Image in the top section
+        // Image in the top section, shifted down so it is not covered by control buttons
         if (isNight) {
             // "In The realistic version the sheep image should be replaced with a picture of the moon reflecting the moon phases."
             Image(
@@ -42,16 +42,17 @@ fun RealisticWeatherBackdrop(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(340.dp)
+                    .padding(top = 54.dp)
+                    .height(320.dp)
             )
 
-            // Moon phase badge overlay
+            // Moon phase badge overlay placed below control buttons
             Surface(
-                color = Color.Black.copy(alpha = 0.55f),
+                color = Color.Black.copy(alpha = 0.65f),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 48.dp, end = 16.dp)
+                    .padding(top = 64.dp, end = 16.dp)
             ) {
                 Text(
                     text = "🌙 ${moonInfo.phaseName} • ${moonInfo.illuminationPercent}%",
@@ -69,7 +70,8 @@ fun RealisticWeatherBackdrop(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(340.dp)
+                    .padding(top = 54.dp)
+                    .height(320.dp)
             )
         }
 
