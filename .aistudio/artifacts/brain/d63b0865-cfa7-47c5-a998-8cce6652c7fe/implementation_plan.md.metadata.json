@@ -1,6 +1,6 @@
 {
-  "summary":  "Implementation plan for Sheep Weather Android Auto integration, featuring a 4-quadrant car dashboard with a central Text-to-Speech readout button, automatic Park vs. Driving mode adaptation, native Android Auto launcher registration, and KSP build stability fixes.",
-  "updatedAt":  "2026-09-27T23:51:17.676469205Z",
+  "summary":  "Comprehensive implementation plan for updating Sheep Weather with:\n1. Working auto-download APK button and in-app GitHub update checker in the Location pop-out drawer.\n2. Redesigned Settings menu moved inside the Location pop-out drawer with new toggles (Turn off AI features, Celsius vs Fahrenheit, Auto/Light/Dark theme, Cartoon vs Photo style).\n3. Cleaned-up Main Screen top bar removing clutter (Day/Night, Cartoon/Photo, Car Mode, and Settings icons moved).\n4. Preserved native Android Auto CarAppService capability while removing the in-app car mode button.\n5. Splash screen startup sync that keeps the animation running until initial weather data has loaded.",
+  "updatedAt":  "2026-10-11T08:27:17.747138515Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

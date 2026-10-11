@@ -165,4 +165,20 @@ class LayersAndAiOverviewTest {
         assertTrue(overview.dressingAndActivityTip.isNotEmpty())
         assertTrue(overview.todaySummary.contains("London"))
     }
+
+    @Test
+    fun testTemperatureFormatterCelsiusAndFahrenheit() {
+        val celsius = 20.0
+        val fahrenheit = com.example.util.TemperatureFormatter.convert(celsius, com.example.util.TemperatureUnit.FAHRENHEIT)
+        assertEquals(68.0, fahrenheit, 0.1)
+
+        val formattedC = com.example.util.TemperatureFormatter.format(celsius, com.example.util.TemperatureUnit.CELSIUS)
+        assertEquals("20°C", formattedC)
+
+        val formattedF = com.example.util.TemperatureFormatter.format(celsius, com.example.util.TemperatureUnit.FAHRENHEIT)
+        assertEquals("68°F", formattedF)
+
+        val freezingC = 0.0
+        assertEquals(32, com.example.util.TemperatureFormatter.toDisplayInt(freezingC, com.example.util.TemperatureUnit.FAHRENHEIT))
+    }
 }

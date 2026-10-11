@@ -15,7 +15,11 @@ import com.example.data.remote.AiWeatherOverview
 import com.example.data.remote.GeminiWeatherService
 import com.example.data.remote.GeocodingResult
 import com.example.data.repository.WeatherRepository
+import com.example.util.AppUpdateManager
 import com.example.util.LocationHelper
+import com.example.util.TemperatureFormatter
+import com.example.util.TemperatureUnit
+import com.example.util.UpdateCheckResult
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,38 +30,47 @@ import kotlinx.coroutines.launch
 sealed interface WeatherScreen {
     object Main : WeatherScreen
     object HourlyDetail : WeatherScreen
-    object CarMode : WeatherScreen
 }
+
+enum class ThemeMode { AUTO, LIGHT, DARK }
 
 data class WeatherUiState(
     val isLoading: Boolean = false,
     val weatherInfo: WeatherInfo? = null,
     val appStyle: AppStyle = AppStyle.CARTOON_SHEEP,
+    val temperatureUnit: TemperatureUnit = TemperatureUnit.CELSIUS,
+    val isAiEnabled: Boolean = true,
+    val themeMode: ThemeMode = ThemeMode.AUTO,
     val locations: List<LocationEntity> = emptyList(),
     val selectedLocation: LocationEntity? = null,
     val moonInfo: MoonInfo = WeatherRepository.calculateMoonPhase(),
-    val isNightOverride: Boolean? = null, // null = auto from forecast
-    val isAutoThemeEnabled: Boolean = true,
-    val isManualNight: Boolean = false,
     val isDataTrackingEnabled: Boolean = true,
     val isUseCurrentLocationEnabled: Boolean = false,
     val isSearchingCity: Boolean = false,
     val citySearchResults: List<GeocodingResult> = emptyList(),
     val currentScreen: WeatherScreen = WeatherScreen.Main,
-    val isCarParked: Boolean = false,
     val isSplashVisible: Boolean = true,
+    val isInitialLoadCompleted: Boolean = false,
     val isSettingsOpen: Boolean = false,
     val layersForecast: LayersForecast? = null,
     val aiOverview: AiWeatherOverview? = null,
     val isAiLoading: Boolean = false,
+    val isCheckingUpdates: Boolean = false,
+    val updateCheckResult: UpdateCheckResult? = null,
     val errorMessage: String? = null
 ) {
     val isNightEffective: Boolean
-        get() = if (!isAutoThemeEnabled) {
-            isManualNight
-        } else {
-            isNightOverride ?: (weatherInfo?.isNight ?: false)
+        get() = when (themeMode) {
+            ThemeMode.LIGHT -> false
+            ThemeMode.DARK -> true
+            ThemeMode.AUTO -> weatherInfo?.isNight ?: false
         }
+
+    val isAutoThemeEnabled: Boolean
+        get() = themeMode == ThemeMode.AUTO
+
+    val isManualNight: Boolean
+        get() = themeMode == ThemeMode.DARK
 }
 
 class WeatherViewModel(application: Application) : AndroidViewModel(application) {
@@ -69,8 +82,23 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     private val _uiState = MutableStateFlow(
         WeatherUiState(
             isLoading = true,
-            isAutoThemeEnabled = prefs.getBoolean("auto_theme_enabled", true),
-            isManualNight = prefs.getBoolean("manual_night_mode", false),
+            temperatureUnit = try {
+                TemperatureUnit.valueOf(prefs.getString("temperature_unit", TemperatureUnit.CELSIUS.name) ?: TemperatureUnit.CELSIUS.name)
+            } catch (_: Exception) { TemperatureUnit.CELSIUS },
+            isAiEnabled = prefs.getBoolean("is_ai_enabled", true),
+            themeMode = try {
+                val savedMode = prefs.getString("theme_mode", null)
+                if (savedMode != null) {
+                    ThemeMode.valueOf(savedMode)
+                } else if (!prefs.getBoolean("auto_theme_enabled", true)) {
+                    if (prefs.getBoolean("manual_night_mode", false)) ThemeMode.DARK else ThemeMode.LIGHT
+                } else {
+                    ThemeMode.AUTO
+                }
+            } catch (_: Exception) { ThemeMode.AUTO },
+            appStyle = try {
+                AppStyle.valueOf(prefs.getString("app_style", AppStyle.CARTOON_SHEEP.name) ?: AppStyle.CARTOON_SHEEP.name)
+            } catch (_: Exception) { AppStyle.CARTOON_SHEEP },
             isDataTrackingEnabled = prefs.getBoolean("data_tracking_enabled", true),
             isUseCurrentLocationEnabled = prefs.getBoolean("use_current_location_enabled", false)
         )
@@ -103,11 +131,13 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 val weather = repository.getWeatherForLocation(location, forceRefresh)
                 val moon = WeatherRepository.calculateMoonPhase()
                 val layers = LayersForecastCalculator.calculate(weather.hourly, weather.current.temperature)
-                val initialAi = GeminiWeatherService.synthesizeLocalOverview(weather)
+                val isAi = _uiState.value.isAiEnabled
+                val initialAi = if (isAi) GeminiWeatherService.synthesizeLocalOverview(weather) else null
 
                 _uiState.update {
                     it.copy(
                         isLoading = false,
+                        isInitialLoadCompleted = true,
                         weatherInfo = weather,
                         moonInfo = moon,
                         layersForecast = layers,
@@ -116,11 +146,14 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                     )
                 }
 
-                fetchGeminiOverview(weather)
+                if (isAi) {
+                    fetchGeminiOverview(weather)
+                }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
+                        isInitialLoadCompleted = true,
                         errorMessage = e.localizedMessage ?: "Failed to load weather"
                     )
                 }
@@ -129,6 +162,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun fetchGeminiOverview(weather: WeatherInfo) {
+        if (!_uiState.value.isAiEnabled) return
         viewModelScope.launch {
             _uiState.update { it.copy(isAiLoading = true) }
             try {
@@ -141,6 +175,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun refreshAiOverview() {
+        if (!_uiState.value.isAiEnabled) return
         val weather = _uiState.value.weatherInfo ?: return
         fetchGeminiOverview(weather)
     }
@@ -221,39 +256,49 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun toggleAppStyle() {
-        _uiState.update {
-            val nextStyle = if (it.appStyle == AppStyle.CARTOON_SHEEP) AppStyle.REALISTIC_SHEEP else AppStyle.CARTOON_SHEEP
-            it.copy(appStyle = nextStyle)
+    fun setTemperatureUnit(unit: TemperatureUnit) {
+        prefs.edit().putString("temperature_unit", unit.name).apply()
+        _uiState.update { it.copy(temperatureUnit = unit) }
+    }
+
+    fun setAiEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("is_ai_enabled", enabled).apply()
+        _uiState.update { state ->
+            val newOverview = if (enabled && state.weatherInfo != null) {
+                GeminiWeatherService.synthesizeLocalOverview(state.weatherInfo)
+            } else null
+            state.copy(isAiEnabled = enabled, aiOverview = newOverview)
+        }
+        if (enabled && _uiState.value.weatherInfo != null) {
+            fetchGeminiOverview(_uiState.value.weatherInfo!!)
         }
     }
 
-    fun toggleNightMode() {
-        _uiState.update {
-            if (!it.isAutoThemeEnabled) {
-                val newManual = !it.isManualNight
-                prefs.edit().putBoolean("manual_night_mode", newManual).apply()
-                it.copy(isManualNight = newManual)
-            } else {
-                val currentEffective = it.isNightEffective
-                it.copy(isNightOverride = !currentEffective)
-            }
-        }
+    fun setThemeMode(mode: ThemeMode) {
+        prefs.edit().putString("theme_mode", mode.name).apply()
+        _uiState.update { it.copy(themeMode = mode) }
     }
 
-    fun toggleAutoTheme(enabled: Boolean) {
-        prefs.edit().putBoolean("auto_theme_enabled", enabled).apply()
-        _uiState.update { it.copy(isAutoThemeEnabled = enabled) }
-    }
-
-    fun setManualNightMode(isNight: Boolean) {
-        prefs.edit().putBoolean("manual_night_mode", isNight).apply()
-        _uiState.update { it.copy(isManualNight = isNight) }
+    fun setAppStyle(style: AppStyle) {
+        prefs.edit().putString("app_style", style.name).apply()
+        _uiState.update { it.copy(appStyle = style) }
     }
 
     fun toggleDataTracking(enabled: Boolean) {
         prefs.edit().putBoolean("data_tracking_enabled", enabled).apply()
         _uiState.update { it.copy(isDataTrackingEnabled = enabled) }
+    }
+
+    fun checkForUpdates(customRepo: String? = null) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isCheckingUpdates = true, updateCheckResult = null) }
+            val result = AppUpdateManager.checkForUpdates(customRepo)
+            _uiState.update { it.copy(isCheckingUpdates = false, updateCheckResult = result) }
+        }
+    }
+
+    fun dismissUpdateDialog() {
+        _uiState.update { it.copy(updateCheckResult = null, isCheckingUpdates = false) }
     }
 
     fun openSettings() {
@@ -270,14 +315,6 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
     fun navigateToHourlyDetail() {
         _uiState.update { it.copy(currentScreen = WeatherScreen.HourlyDetail) }
-    }
-
-    fun navigateToCarMode() {
-        _uiState.update { it.copy(currentScreen = WeatherScreen.CarMode) }
-    }
-
-    fun toggleCarParkMode() {
-        _uiState.update { it.copy(isCarParked = !it.isCarParked) }
     }
 
     fun navigateBackToMain() {

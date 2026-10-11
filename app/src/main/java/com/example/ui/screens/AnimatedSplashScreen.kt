@@ -53,10 +53,12 @@ import kotlinx.coroutines.delay
 @Composable
 fun AnimatedSplashScreen(
     isNight: Boolean,
+    isLoaded: Boolean = true,
     onAnimationFinished: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var animationStarted by remember { mutableStateOf(false) }
+    var minDisplayPassed by remember { mutableStateOf(false) }
 
     val alphaAnim by animateFloatAsState(
         targetValue = if (animationStarted) 1f else 0f,
@@ -93,8 +95,21 @@ fun AnimatedSplashScreen(
 
     LaunchedEffect(Unit) {
         animationStarted = true
-        // Show animation for 2.2 seconds before transitioning smoothly
-        delay(2200)
+        // Allow mascot animation to play for at least 1.4 seconds
+        delay(1400)
+        minDisplayPassed = true
+    }
+
+    // Seamless dismissal as soon as minimum animation has played and initial weather load completes
+    LaunchedEffect(minDisplayPassed, isLoaded) {
+        if (minDisplayPassed && isLoaded) {
+            onAnimationFinished()
+        }
+    }
+
+    // Safety timeout: dismiss after 4.5 seconds maximum so user is never stuck
+    LaunchedEffect(Unit) {
+        delay(4500)
         onAnimationFinished()
     }
 

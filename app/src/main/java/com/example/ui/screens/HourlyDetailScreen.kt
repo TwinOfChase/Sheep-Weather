@@ -64,12 +64,15 @@ import com.example.data.model.HourlyWeather
 import com.example.data.model.WeatherInfo
 import com.example.ui.components.AppCopyrightFooter
 import com.example.ui.components.ConditionIcon
+import com.example.util.TemperatureFormatter
+import com.example.util.TemperatureUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HourlyDetailScreen(
     weatherInfo: WeatherInfo,
     isNight: Boolean,
+    temperatureUnit: TemperatureUnit = TemperatureUnit.CELSIUS,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -203,7 +206,7 @@ fun HourlyDetailScreen(
                         val maxRainMm = hourlyList.maxOfOrNull { it.precipitationMm } ?: 0.0
                         MetricStatItem(
                             label = "Max Chance",
-                            value = "${formatVal(maxVal, selectedCondition)}%",
+                            value = "${formatVal(maxVal, selectedCondition, temperatureUnit)}%",
                             textColor = textColor,
                             subTextColor = subTextColor
                         )
@@ -234,7 +237,7 @@ fun HourlyDetailScreen(
                     } else {
                         MetricStatItem(
                             label = "Minimum",
-                            value = "${formatVal(minVal, selectedCondition)} ${selectedCondition.unit}",
+                            value = "${formatVal(minVal, selectedCondition, temperatureUnit)} ${getUnitLabel(selectedCondition, temperatureUnit)}",
                             textColor = textColor,
                             subTextColor = subTextColor
                         )
@@ -246,7 +249,7 @@ fun HourlyDetailScreen(
                         )
                         MetricStatItem(
                             label = "Average",
-                            value = "${formatVal(values.average(), selectedCondition)} ${selectedCondition.unit}",
+                            value = "${formatVal(values.average(), selectedCondition, temperatureUnit)} ${getUnitLabel(selectedCondition, temperatureUnit)}",
                             textColor = textColor,
                             subTextColor = subTextColor
                         )
@@ -258,7 +261,7 @@ fun HourlyDetailScreen(
                         )
                         MetricStatItem(
                             label = "Maximum",
-                            value = "${formatVal(maxVal, selectedCondition)} ${selectedCondition.unit}",
+                            value = "${formatVal(maxVal, selectedCondition, temperatureUnit)} ${getUnitLabel(selectedCondition, temperatureUnit)}",
                             textColor = textColor,
                             subTextColor = subTextColor
                         )
@@ -335,7 +338,7 @@ fun HourlyDetailScreen(
                                     // Show Real Feel when Temperature is selected, or Rain mm when Rain is selected
                                     if (selectedCondition == HourlyConditionType.TEMPERATURE) {
                                         Text(
-                                            text = "Feels ${hour.realFeel.toInt()}°C",
+                                            text = "Feels ${TemperatureFormatter.format(hour.realFeel, temperatureUnit)}",
                                             fontSize = 12.5.sp,
                                             fontWeight = FontWeight.SemiBold,
                                             color = if (isNight) Color(0xFFFFB74D) else Color(0xFFD97706),
@@ -383,7 +386,7 @@ fun HourlyDetailScreen(
                             // Primary Metric Number Display
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
-                                    text = "${formatVal(metricValue, selectedCondition)}${selectedCondition.unit}",
+                                    text = "${formatVal(metricValue, selectedCondition, temperatureUnit)}${getUnitLabel(selectedCondition, temperatureUnit)}",
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = textColor
@@ -436,13 +439,17 @@ private fun getMetricValue(hourly: HourlyWeather, type: HourlyConditionType): Do
     }
 }
 
-private fun formatVal(value: Double, type: HourlyConditionType): String {
+private fun formatVal(value: Double, type: HourlyConditionType, tempUnit: TemperatureUnit = TemperatureUnit.CELSIUS): String {
     return when (type) {
         HourlyConditionType.UV_INDEX -> "%.1f".format(value)
-        HourlyConditionType.TEMPERATURE -> "${value.toInt()}"
+        HourlyConditionType.TEMPERATURE -> "${TemperatureFormatter.toDisplayInt(value, tempUnit)}"
         HourlyConditionType.WIND_SPEED -> "%.0f".format(value)
         else -> "${value.toInt()}"
     }
+}
+
+private fun getUnitLabel(type: HourlyConditionType, tempUnit: TemperatureUnit): String {
+    return if (type == HourlyConditionType.TEMPERATURE) tempUnit.symbol else type.unit
 }
 
 private fun getConditionChipIcon(type: HourlyConditionType): ImageVector {

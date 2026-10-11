@@ -1,118 +1,142 @@
-# Sheep Weather — Android Auto & Four-Quadrant Car Display
+# Sheep Weather — Settings Overhaul, Update & APK Downloader, and Startup Sync
 
-Deliver a complete Android Auto experience for Sheep Weather so the app appears in the Android Auto launcher alongside apps like Spotify and Messages, while also providing an interactive **Car Display Mode** directly inside the app featuring the custom **4-Quadrant Layout**, a **Central Speak Aloud (TTS) Button**, and **Park vs. Driving Mode** adaptation.
+Implement a refined settings experience, direct in-app APK auto-downloader, GitHub update checker, startup splash synchronization, and top-bar cleanup while preserving native Android Auto capability.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> **How Android Auto Templates vs. Custom 4-Quadrant Canvas Work Together**
-> Android Auto head units enforce template restrictions (`GridTemplate` / `PaneTemplate`) for third-party projections while allowing custom canvas rendering on the phone screen or dashboard display. To give you the best of both worlds, we will implement:
-> 1. **Native Android Auto Launcher Service (`CarAppService`)**: Registers Sheep Weather in the car's Android Auto launcher menu with a 4-item grid/dashboard, voice readout action, and live `CarUxRestrictions` / gear state detection for Park vs. Driving mode.
-> 2. **Full-Screen 4-Quadrant Car Display Mode (In-App & Dashboard View)**: Renders the exact 2×2 four-quadrant split screen with the circular **Speak** button centered at the intersection of the four quadrants, automatic/manual **Park vs. Drive** mode switching, and native Android Text-to-Speech readout.
-
-- **Confirmed Decision 1 — Four-Quadrant Layout**:
-  - **Quadrant 1 (Top-Left — Temperature)**: Large current temperature, "Feels like" temperature, condition icon, and city label mirroring the phone's primary weather display.
-  - **Quadrant 2 (Top-Right — Hourly Forecast)**: Capped at **4 upcoming hours** in Driving Mode for quick glanceability; unlocks a **scrollable full hourly forecast** when in Park Mode.
-  - **Quadrant 3 (Bottom-Left — Layer / Outfit & Umbrella)**: Strictly minimal display showing **only** the recommended layer count (`3 Layers`) and umbrella status (`No Umbrella` / `Umbrella Needed` / `Too Windy for Umbrella`) with bold iconography and no extra text clutter.
-  - **Quadrant 4 (Bottom-Right — Today's AI Overview)**: Large-font, shortened single-day summary while driving; expands to a **detailed AI overview** in Park Mode.
-- **Confirmed Decision 2 — Center Speak Aloud Button**:
-  - Anchored at the center intersection of the 4 quadrants. Tapping reads aloud a natural spoken weather briefing (current temperature, feels-like, recommended clothing layers, umbrella advice, and the day's progression from morning to evening) using Android's `TextToSpeech` engine.
-- **Confirmed Decision 3 — Vehicle Park Mode Enhancements**:
-  - Detects when the vehicle is in **Park** (via Android Auto `CarUxRestrictions` / stationary sensor state, plus a manual Park/Drive selector for testing) to reveal **Sunrise & Sunset times**, a **scrollable hourly forecast**, and an **expanded AI overview**.
-- **Confirmed Decision 4 — Build Stability Fix**:
-  - Resolves the KSP headless AWT `NullPointerException` build error by configuring headless JVM properties and KSP2 execution settings.
+> **Summary of Confirmed Choices from Phase 1 Clarification:**
+> 1. **Android Auto**: Preserve the native `CarAppService` and vehicle manifest integration, but completely remove the Car Mode button from the phone interface to eliminate UI clutter.
+> 2. **APK Download & Updates**: Provide a one-tap button inside the Location pop-out menu that automatically downloads and prompts to install the latest APK (using Android's `DownloadManager` and GitHub releases), along with a "Check for Updates" version comparison.
+> 3. **Startup Loading**: Keep the animated sheep splash screen active until the initial weather forecast is fully loaded in the background, transitioning seamlessly into the populated main screen without loading flashes.
+> 4. **Settings Relocation & New Controls**: Move Settings to a prominent action inside the Location drawer. Add new capabilities:
+>    - Toggle to disable Gemini AI features (hides the card and avoids API network calls).
+>    - Celsius (°C) vs. Fahrenheit (°F) temperature toggle across all screens, cards, and hourly breakdowns.
+>    - Day / Night theme selector with 3 options: Auto (solar-based), Fixed Light, and Fixed Dark.
+>    - App style selector: Cartoon Sheep vs. Realistic Photo sheep.
+> 5. **Main Screen Top-Bar Cleanup**: Remove the Cartoon/Photo pill, Car Mode icon, Day/Night toggle, and Settings gear from the top bar so only the Location selector pill and Refresh button remain.
 
 ---
 
 ## 1. Overview & Core Concept
 
-- **What It Does**: Extends Sheep Weather to the vehicle dashboard with a distraction-optimized 4-quadrant layout, one-tap spoken weather and outfit briefings over car audio, and automatic detail expansion when the car is parked.
-- **Target Audience / Persona**: Drivers and commuters who want an immediate visual or spoken check of the temperature, how many layers to wear, whether an umbrella is needed (or if it's too windy), and how the day's weather will evolve.
-- **Key Value**: Eliminates small text and multi-screen scrolling while driving by condensing essential weather intelligence into four high-contrast quadrants and a single central voice readout button.
+- **What It Does**: Moves secondary configuration (theme, visual style, AI toggle, temperature units) into a dedicated Settings hub accessible from the Location drawer; streamlines the main dashboard; keeps the splash animation active until live data is ready; and provides direct APK auto-downloading and GitHub version updates.
+- **Target Audience**: Users who want a fast, clutter-free weather dashboard with personalized unit choices (°C/°F), privacy controls (disabling AI), and effortless one-tap app updates.
+- **Key Value**: Clean visual hierarchy, zero loading spinners on startup, full temperature unit flexibility, and functional self-updating without Google Play dependency.
 
 ---
 
 ## 2. User Experience & Visual Design
 
 ### Key User Flows
-1. **Connecting to Android Auto**:
-   - When the phone connects to an Android Auto head unit, **Sheep Weather** appears in the car's app launcher alongside navigation, media, and messaging apps.
-   - Selecting Sheep Weather opens the car dashboard with instant access to all 4 weather categories, a **Speak Forecast** action in the header/center, and automatic **Park vs. Drive** detail switching.
-2. **Using the 4-Quadrant Car Display**:
-   - Tapping the **Car Mode (Android Auto)** icon on the main phone screen (or rotating/docking in the car) launches the full-screen 2×2 quadrant layout:
-     - **Top-Left (Q1 — Temperature)**: Extra-large temperature readout (e.g., `16°C`), `Feels like 12°C`, condition icon, and location name. When in **Park Mode**, displays **Sunrise & Sunset** badges (`Sunrise 6:15 AM • Sunset 7:45 PM`).
-     - **Top-Right (Q2 — Hourly)**: In **Drive Mode**, displays a fixed 4-column row of the next 4 hours (`Now`, `+1h`, `+2h`, `+3h`) at large scale. In **Park Mode**, unlocks smooth horizontal/vertical scrolling through the next 24 hours.
-     - **Bottom-Left (Q3 — Layer / Outfit)**: Displays only the layer count badge (e.g., `👕 3 Layers`) and the umbrella badge (e.g., `🌂 No Umbrella`, `☂️ Umbrella Needed`, or `💨 Too Windy`) in oversized, high-contrast pills with zero secondary text clutter.
-     - **Bottom-Right (Q4 — AI Overview)**: In **Drive Mode**, displays a concise, single-day progression in large 20sp+ text (morning, midday, and evening summary). In **Park Mode**, expands into a scrollable detailed overview with full day analysis and dressing tips.
-3. **Center Speak Button Interaction**:
-   - Floating at the exact center intersection of the four quadrants is a large circular **Speak** button (`64dp+` touch target).
-   - Tapping it synthesizes and speaks a natural narrative aloud:
-     > *"It's currently 16 degrees and feels like 12 degrees, 3 layers of clothing is recommended and an umbrella is not needed. Wellington starts with clear skies and a cool 11 degrees, towards midday more overcast and temperatures of around 16. Showers starting early evening."*
-   - While speaking, the center button displays an animated audio waveform ring and allows tapping again to stop playback immediately.
 
-### Visual Identity & Theme
-- **Aesthetic Direction**: Automotive Cockpit High-Contrast UI — deep slate-navy surfaces (`#0B132B` / `#14203B`), crisp quadrant dividers, oversized numerals, and warm amber/cyan accents optimized for peripheral glanceability in both daytime glare and night driving.
-- **Typography & Hierarchy**:
-  - Quadrant 1 Hero Temperature: `48sp` ExtraBold
-  - Quadrant 3 Layer & Umbrella Status: `22sp` Bold with `36dp` icons
-  - Quadrant 2 Hourly Items & Quadrant 4 Short AI Overview: `18sp–20sp` Medium with high line height for effortless reading at arm's length.
+1. **Seamless Startup Experience**:
+   - The user opens Sheep Weather.
+   - The cute cartoon sheep breathing animation plays.
+   - In the background, `WeatherViewModel` loads the selected location and fetches fresh weather from Open-Meteo and Room database cache.
+   - Once data is fully loaded (or safety timeout reached), the splash screen fades smoothly into the fully populated main dashboard—no empty cards or loading spinners.
+
+2. **Cleaned-Up Main Screen Header**:
+   - The top header now contains only:
+     - **Location Selector Pill** (`LocationOn` + City Name + Arrow) on the left.
+     - **Refresh Button** (clean circular icon) on the right.
+   - Extraneous buttons (Photo/Cartoon toggle, Car button, Sun/Moon toggle, Settings gear) are removed from the main screen surface, letting the sheep backdrop shine.
+
+3. **Location Pop-Out & Quick Actions**:
+   - Tapping the Location selector slides open the drawer.
+   - Above the saved cities list, user sees:
+     - **Settings Button** (`Settings` icon + "Settings & Preferences" subtitle).
+     - **Check for Updates & Auto-Download APK Button** (`Download` / `SystemUpdate` icon + current version badge).
+     - **Use Current Location** GPS detection button.
+   - Below are the saved favorite cities with selection and delete options.
+
+4. **New Settings Hub**:
+   - Tapping Settings opens the dialog containing:
+     - **AI Weather Features**: Toggle switch with Gemini logo. When turned OFF, completely removes the AI Overview card from the main screen and disables Gemini API calls.
+     - **Temperature Unit**: Segmented toggle between **Celsius (°C)** and **Fahrenheit (°F)**. Automatically recalculates all values across current temp, real feel, min/max, 24h hourly strip, and 7-day forecast.
+     - **Appearance & Theme**: 3-way selector for **Auto (Day/Night)**, **Light Mode**, and **Dark Mode**.
+     - **Visual Style**: Radio toggle between **Cartoon Sheep** and **Realistic Photo**.
+     - **Direct APK Download**: "Download Latest APK" button with direct file download link.
+     - **Privacy & Data Saver**: Existing zero-tracking and cache options.
+
+5. **In-App Update & Auto-Download**:
+   - Tapping "Check for Updates" compares the local version (`v2.5`) against the latest GitHub release.
+   - Shows a dialog with the latest version number, release changelog, and a prominent **"Download & Install APK"** button.
+   - Tapping triggers an Android `DownloadManager` request downloading the `.apk` file to the device `Downloads` directory and opens the package installer intent.
 
 ---
 
 ## 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Dual Support — Native `CarAppService` + In-App 4-Quadrant Car Display**
-  - *Chosen Approach*: Implement both the official Jetpack `androidx.car.app` service (so Android Auto head units list Sheep Weather in the car launcher) and a dedicated full-screen 4-Quadrant Car Display screen inside the app.
-  - *Why*: Android Auto's projection protocol enforces standardized templates (`GridTemplate` / `PaneTemplate`) on external car screens, whereas the in-app Car Display renders the exact custom 2×2 quadrant geometry with the overlapping center Speak button and lets you test Drive vs. Park mode immediately in the preview.
-- **Decision 2: Natural Spoken Weather Script Generator for TTS**
-  - *Chosen Approach*: Build a dedicated spoken-script formatter that combines current temp, feels-like temp, layer count, umbrella status (including wind warnings), and a morning/midday/evening progression derived from the hourly and AI forecast.
-  - *Why*: Matches the exact conversational readout style requested without reading raw symbols or markdown tags aloud.
-- **Decision 3: Hardware & UX Restriction Park Detection**
-  - *Chosen Approach*: Listen to Android Auto `CarUxRestrictions` (`UX_RESTRICTIONS_NO_SETUP` / `UX_RESTRICTIONS_LIMIT_STRING_LENGTH` cleared when parked) and device stationary/speed state, paired with an on-screen **DRIVE / PARK** status pill that can also be toggled manually.
-  - *Why*: Automatically adapts in vehicles that report gear/park state to Android Auto while remaining testable anytime.
+- **Decision 1: Moving Toggles to Settings vs. Keeping in Header**
+  - *Chosen Approach*: Move Style (Cartoon/Photo) and Theme (Day/Night/Auto) into Settings, accessed via the Location drawer.
+  - *Why*: The top bar had become overcrowded with 5 separate icon buttons. Moving them declutters the header and establishes a clear single entry point for preferences.
+- **Decision 2: Unit Conversion Strategy (°C vs. °F)**
+  - *Chosen Approach*: Store temperatures in canonical Celsius in the data models / database, and apply unit formatting helper `TemperatureFormatter.format(celsius, unit)` in the UI layer.
+  - *Why*: Keeps database cache and API contracts consistent while allowing instant switching without refetching network forecasts.
+- **Decision 3: APK Auto-Download Implementation**
+  - *Chosen Approach*: Dual-layer downloader:
+    1. Query GitHub releases API (`/repos/{owner}/{repo}/releases/latest`) to find the `.apk` asset download URL.
+    2. Enqueue the APK via Android `DownloadManager` with notification visibility, and launch `ACTION_VIEW` with `application/vnd.android.package-archive` MIME type when completed. Fallback to direct browser download if storage permissions are restricted.
+  - *Why*: Guarantees a working download on any device or emulator without relying on external app stores.
+- **Decision 4: Retaining Native Android Auto Service**
+  - *Chosen Approach*: Retain `SheepWeatherCarAppService` and `automotive_app_desc.xml` in the Android manifest, but remove `WeatherScreen.CarMode` and the phone screen car button.
+  - *Why*: Matches user clarification: Android Auto head unit capability remains intact for cars that connect, but the phone UI remains pure.
 
 ---
 
 ## 4. Technical Architecture & Data Strategy
 
-### Architecture & Component Diagram
+### System Architecture Diagram
 
 ```
-┌───────────────────────────────────────────────────────────────────────────┐
-│                         Sheep Weather Repository                          │
-│  Open-Meteo Forecast + LayersForecastCalculator + GeminiWeatherService    │
-└───────────────────┬───────────────────────────────────┬───────────────────┘
-                    │                                   │
-                    ▼                                   ▼
-┌───────────────────────────────────────┐ ┌─────────────────────────────────┐
-│     Android Auto Head Unit Service    │ │   4-Quadrant Car Display UI     │
-│  (SheepWeatherCarAppService & Screen) │ │     (CarModeWeatherScreen)      │
-│  • Appears in Android Auto Launcher   │ │  ┌──────────────┬────────────┐  │
-│  • Observes CarUxRestrictions (Park)  │ │  │ Q1: Temp     │ Q2: Hourly │  │
-│  • Grid/Pane Templates + Voice Action │ │  │ (+Sun in P)  │ (4h / All) │  │
-└───────────────────┬───────────────────┘ │  ├──────┬───────┴─────┬──────┤  │
-                    │                     │  │      │ 🔊 SPEAK    │      │  │
-                    │                     │  ├──────┴───────┬─────┴──────┤  │
-                    │                     │  │ Q3: Layers   │ Q4: AI Day │  │
-                    │                     │  │ & Umbrella   │ Overview   │  │
-                    │                     │  └──────────────┴────────────┘  │
-                    └──────────┬──────────┴─────────────┬───────────────────┘
-                               ▼                        ▼
-                    ┌─────────────────────────────────────────────┐
-                    │       WeatherSpeechSynthesizer (TTS)        │
-                    │  • Formats natural spoken weather narrative │
-                    │  • Manages Android TextToSpeech lifecycle   │
-                    └─────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Sheep Weather ViewModel                         │
+│  State: isLoading, weatherInfo, tempUnit (C/F), isAiEnabled, themeMode │
+└───────────────────┬────────────────────────────────┬───────────────────┘
+                    │                                │
+                    ▼                                ▼
+       ┌────────────────────────┐       ┌────────────────────────┐
+       │   Locations Drawer     │       │     Settings Dialog    │
+       │  • Saved Cities List   │       │  • AI Features Toggle  │
+       │  • Use Current GPS     │       │  • °C vs °F Selector   │
+       │  • Open Settings       │       │  • Auto/Light/Dark     │
+       │  • Check for Updates   │       │  • Cartoon vs Photo    │
+       │  • Auto-Download APK   │       │  • APK Direct Link     │
+       └────────────┬───────────┘       └────────────────────────┘
+                    │
+                    ▼
+       ┌────────────────────────────────────────────────────────┐
+       │                AppUpdateManager (Helper)               │
+       │  • Queries GitHub Latest Release                       │
+       │  • Enqueues APK via Android DownloadManager            │
+       │  • Prompts Package Installer Intent                    │
+       └────────────────────────────────────────────────────────┘
 ```
 
-### Interactive Component & State Mapping
-- **Park / Drive Mode State**:
-  - **Driving State**: Locks Q2 to `hourly.take(4)` (non-scrolling), hides sunrise/sunset metadata in Q1 to reduce visual density, and formats Q4 as a concise 2–3 sentence day progression (morning, midday, evening) in `20sp` font.
-  - **Parked State**: Unlocks horizontal/vertical scrolling across all 24 hours in Q2, reveals Sunrise & Sunset badges in Q1, and expands Q4 to show the full Today summary, Upcoming trend, and Dressing tips.
-- **Center Speak Button (`WeatherSpeechSynthesizer`)**:
-  - Initializes `android.speech.tts.TextToSpeech` with `Locale.getDefault()`.
-  - Generates the exact spoken string:
-    `"It's currently {temp} degrees and feels like {realFeel} degrees, {layerCount} layers of clothing is recommended and {umbrellaPhrase}. {locationName} starts with {morningDesc} and a {morningFeel} {morningTemp} degrees, towards midday {middayDesc} and temperatures of around {middayTemp}. {eveningPhrase}."`
-  - Toggles between idle (`Speak`) and active speaking (`Stop`) states with visual feedback.
-- **KSP & Gradle Stability**:
-  - Configures `-Djava.awt.headless=true` in `gradle.properties` and aligns the KSP plugin configuration so Room and Moshi code generation complete cleanly without AWT event queue exceptions.
+### Component & State Mapping
+
+1. **`WeatherViewModel` State Additions**:
+   - `temperatureUnit: TemperatureUnit` (`CELSIUS` or `FAHRENHEIT`), persisted in `SharedPreferences`.
+   - `isAiEnabled: Boolean` (default `true`), persisted in `SharedPreferences`.
+   - `themeMode: ThemeMode` (`AUTO`, `LIGHT`, `DARK`), replacing binary boolean flags.
+   - `isInitialLoadCompleted: StateFlow<Boolean>`: Emits `true` only when the first location's weather data has been retrieved and mapped.
+2. **`AnimatedSplashScreen` Synchronization**:
+   - Listens to `uiState.isInitialLoadCompleted`.
+   - Minimum animation delay of 1.2s to enjoy the cute sheep animation, then dismisses as soon as `isInitialLoadCompleted == true` (with 4s max safety timeout).
+3. **`TemperatureFormatter`**:
+   - Utility converting Celsius values: `F = (C * 9/5) + 32`.
+   - Formats values cleanly (e.g. `16°C` vs `61°F`) across Hero Temperature, Real Feel, Hourly cards, 7-Day forecast, and Layer advice.
+4. **`AppUpdateManager`**:
+   - Manages version check against GitHub releases API.
+   - Implements download & install logic via `DownloadManager`.
+
+---
+
+## Implementation Verification Plan
+
+1. **Compilation Check**: Run `compile_applet` to ensure all new settings, formatters, and update managers compile cleanly.
+2. **Splash Screen Startup**: Verify the splash screen remains active until initial weather data is loaded.
+3. **Settings Controls**: Verify AI toggle hides the AI card, Celsius/Fahrenheit updates all screen temperatures, and theme selector supports Auto/Light/Dark.
+4. **Header Cleanliness**: Verify the main screen header only shows Location and Refresh.
+5. **APK Auto-Download & Update Check**: Verify tapping "Check for Updates" and "Download APK" triggers the download action correctly.

@@ -22,13 +22,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DataSaverOn
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -46,12 +46,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.LocationEntity
 import com.example.ui.components.AppCopyrightFooter
+import com.example.util.AppUpdateManager
 
 @Composable
 fun LocationsDrawerContent(
@@ -64,9 +66,10 @@ fun LocationsDrawerContent(
     onClose: () -> Unit,
     onOpenSettings: () -> Unit = {},
     onUseCurrentLocation: () -> Unit = {},
-    onOpenCarMode: () -> Unit = {},
+    onCheckForUpdates: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     var showAddDialog by remember { mutableStateOf(false) }
 
     val bgColor = if (isNight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
@@ -125,45 +128,102 @@ fun LocationsDrawerContent(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Data Saver Banner
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    color = if (isNight) Color(0xFF064E3B).copy(alpha = 0.45f) else Color(0xFFD1FAE5),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.DataSaverOn,
-                contentDescription = "Data Saver",
-                tint = if (isNight) Color(0xFF34D399) else Color(0xFF059669),
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Zero background refresh. Cached in local Room DB.",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                color = if (isNight) Color(0xFFA7F3D0) else Color(0xFF065F46)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Use Current Location Button
+        // Quick Actions Group in Drawer:
+        // 1. Settings Button (Prominent inside Location pop out)
         Surface(
             shape = RoundedCornerShape(12.dp),
-            color = if (isNight) Color(0xFF1E3A8A).copy(alpha = 0.6f) else Color(0xFFE0F2FE),
+            color = if (isNight) Color(0xFF1E293B) else Color(0xFFF1F5F9),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                if (isNight) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.08f)
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onOpenSettings() }
+                .testTag("drawer_settings_button")
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Settings",
+                    tint = if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = "Settings & Preferences",
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = textColor
+                    )
+                    Text(
+                        text = "AI features, °C/°F, Theme & Art style",
+                        fontSize = 10.5.sp,
+                        color = subTextColor
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // 2. Check for Updates & Auto-Download APK Button
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = if (isNight) Color(0xFF0F2942) else Color(0xFFE0F2FE),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                if (isNight) Color(0xFF38BDF8).copy(alpha = 0.35f) else Color(0xFF0284C7).copy(alpha = 0.25f)
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onCheckForUpdates() }
+                .testTag("drawer_check_updates_button")
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FileDownload,
+                    contentDescription = "Check for Updates",
+                    tint = if (isNight) Color(0xFF38BDF8) else Color(0xFF0284C7),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = "Check Updates & Download APK",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = textColor
+                    )
+                    Text(
+                        text = "Auto-download latest release from GitHub",
+                        fontSize = 10.5.sp,
+                        color = subTextColor
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // 3. Use Current Location GPS Button
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = if (isNight) Color(0xFF1E3A8A).copy(alpha = 0.5f) else Color(0xFFEBF5FF),
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onUseCurrentLocation() }
                 .testTag("drawer_use_current_location")
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -172,12 +232,12 @@ fun LocationsDrawerContent(
                     tint = if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7),
                     modifier = Modifier.size(18.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(
                         text = "Use Current Location",
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                         color = textColor
                     )
                     Text(
@@ -189,46 +249,32 @@ fun LocationsDrawerContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        // Android Auto / 4-Quadrant Car Mode Button
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = if (isNight) Color(0xFF0F2942) else Color(0xFFE0F2FE),
-            border = androidx.compose.foundation.BorderStroke(
-                1.dp,
-                if (isNight) Color(0xFF38BDF8).copy(alpha = 0.4f) else Color(0xFF0284C7).copy(alpha = 0.3f)
-            ),
+        // Data Saver status
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onOpenCarMode() }
-                .testTag("drawer_open_car_mode")
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DirectionsCar,
-                    contentDescription = "Android Auto Car Mode",
-                    tint = if (isNight) Color(0xFF38BDF8) else Color(0xFF0284C7),
-                    modifier = Modifier.size(18.dp)
+                .background(
+                    color = if (isNight) Color(0xFF064E3B).copy(alpha = 0.35f) else Color(0xFFD1FAE5),
+                    shape = RoundedCornerShape(10.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(
-                        text = "Android Auto • Car Display",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textColor
-                    )
-                    Text(
-                        text = "4 Quadrants + Speak Aloud + Park Mode",
-                        fontSize = 10.5.sp,
-                        color = subTextColor
-                    )
-                }
-            }
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.DataSaverOn,
+                contentDescription = "Data Saver",
+                tint = if (isNight) Color(0xFF34D399) else Color(0xFF059669),
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "Zero background refresh. Cached in local DB.",
+                fontSize = 10.5.sp,
+                fontWeight = FontWeight.Medium,
+                color = if (isNight) Color(0xFFA7F3D0) else Color(0xFF065F46)
+            )
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -239,7 +285,7 @@ fun LocationsDrawerContent(
             fontWeight = FontWeight.Bold,
             color = subTextColor,
             letterSpacing = 0.8.sp,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
         )
 
         // Locations List
@@ -338,9 +384,9 @@ fun LocationsDrawerContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        // Add New Location Action Button (No lat/long needed!)
+        // Add New Location Action Button
         Button(
             onClick = { showAddDialog = true },
             modifier = Modifier
@@ -358,29 +404,6 @@ fun LocationsDrawerContent(
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(text = "Add City by Name", fontWeight = FontWeight.Bold)
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Settings Action Button
-        Button(
-            onClick = onOpenSettings,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("drawer_settings_button"),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (isNight) Color(0xFF1E293B) else Color(0xFFE2E8F0),
-                contentColor = textColor
-            ),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Settings,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(text = "Settings & Privacy", fontWeight = FontWeight.SemiBold)
         }
 
         Spacer(modifier = Modifier.height(8.dp))
