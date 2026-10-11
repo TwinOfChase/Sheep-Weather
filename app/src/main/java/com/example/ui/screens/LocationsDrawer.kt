@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DataSaverOn
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
@@ -63,6 +64,7 @@ fun LocationsDrawerContent(
     onClose: () -> Unit,
     onOpenSettings: () -> Unit = {},
     onUseCurrentLocation: () -> Unit = {},
+    onOpenCarMode: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
@@ -102,7 +104,7 @@ fun LocationsDrawerContent(
                         color = textColor
                     )
                     Text(
-                        text = "Slide-out Menu • v2.2",
+                        text = "Slide-out Menu • v2.5",
                         fontSize = 11.sp,
                         color = subTextColor
                     )
@@ -180,6 +182,48 @@ fun LocationsDrawerContent(
                     )
                     Text(
                         text = "One-shot GPS detection",
+                        fontSize = 10.5.sp,
+                        color = subTextColor
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Android Auto / 4-Quadrant Car Mode Button
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = if (isNight) Color(0xFF0F2942) else Color(0xFFE0F2FE),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                if (isNight) Color(0xFF38BDF8).copy(alpha = 0.4f) else Color(0xFF0284C7).copy(alpha = 0.3f)
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onOpenCarMode() }
+                .testTag("drawer_open_car_mode")
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DirectionsCar,
+                    contentDescription = "Android Auto Car Mode",
+                    tint = if (isNight) Color(0xFF38BDF8) else Color(0xFF0284C7),
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = "Android Auto • Car Display",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = textColor
+                    )
+                    Text(
+                        text = "4 Quadrants + Speak Aloud + Park Mode",
                         fontSize = 10.5.sp,
                         color = subTextColor
                     )

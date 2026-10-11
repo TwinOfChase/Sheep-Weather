@@ -198,36 +198,71 @@ fun HourlyDetailScreen(
                     horizontalArrangement = Arrangement.SpaceAround,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    MetricStatItem(
-                        label = "Minimum",
-                        value = "${formatVal(minVal, selectedCondition)} ${selectedCondition.unit}",
-                        textColor = textColor,
-                        subTextColor = subTextColor
-                    )
-                    Box(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .height(30.dp)
-                            .background(if (isNight) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.1f))
-                    )
-                    MetricStatItem(
-                        label = "Average",
-                        value = "${formatVal(values.average(), selectedCondition)} ${selectedCondition.unit}",
-                        textColor = textColor,
-                        subTextColor = subTextColor
-                    )
-                    Box(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .height(30.dp)
-                            .background(if (isNight) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.1f))
-                    )
-                    MetricStatItem(
-                        label = "Maximum",
-                        value = "${formatVal(maxVal, selectedCondition)} ${selectedCondition.unit}",
-                        textColor = textColor,
-                        subTextColor = subTextColor
-                    )
+                    if (selectedCondition == HourlyConditionType.PRECIPITATION) {
+                        val totalRainMm = hourlyList.sumOf { it.precipitationMm }
+                        val maxRainMm = hourlyList.maxOfOrNull { it.precipitationMm } ?: 0.0
+                        MetricStatItem(
+                            label = "Max Chance",
+                            value = "${formatVal(maxVal, selectedCondition)}%",
+                            textColor = textColor,
+                            subTextColor = subTextColor
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(30.dp)
+                                .background(if (isNight) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.1f))
+                        )
+                        MetricStatItem(
+                            label = "24h Total",
+                            value = "${"%.1f".format(totalRainMm)} mm",
+                            textColor = textColor,
+                            subTextColor = subTextColor
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(30.dp)
+                                .background(if (isNight) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.1f))
+                        )
+                        MetricStatItem(
+                            label = "Peak Hour",
+                            value = "${"%.1f".format(maxRainMm)} mm",
+                            textColor = textColor,
+                            subTextColor = subTextColor
+                        )
+                    } else {
+                        MetricStatItem(
+                            label = "Minimum",
+                            value = "${formatVal(minVal, selectedCondition)} ${selectedCondition.unit}",
+                            textColor = textColor,
+                            subTextColor = subTextColor
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(30.dp)
+                                .background(if (isNight) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.1f))
+                        )
+                        MetricStatItem(
+                            label = "Average",
+                            value = "${formatVal(values.average(), selectedCondition)} ${selectedCondition.unit}",
+                            textColor = textColor,
+                            subTextColor = subTextColor
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(30.dp)
+                                .background(if (isNight) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.1f))
+                        )
+                        MetricStatItem(
+                            label = "Maximum",
+                            value = "${formatVal(maxVal, selectedCondition)} ${selectedCondition.unit}",
+                            textColor = textColor,
+                            subTextColor = subTextColor
+                        )
+                    }
                 }
             }
 
@@ -297,13 +332,22 @@ fun HourlyDetailScreen(
                                         color = subTextColor,
                                         maxLines = 1
                                     )
-                                    // Show Real Feel ONLY when Temperature is selected
+                                    // Show Real Feel when Temperature is selected, or Rain mm when Rain is selected
                                     if (selectedCondition == HourlyConditionType.TEMPERATURE) {
                                         Text(
                                             text = "Feels ${hour.realFeel.toInt()}°C",
                                             fontSize = 12.5.sp,
                                             fontWeight = FontWeight.SemiBold,
                                             color = if (isNight) Color(0xFFFFB74D) else Color(0xFFD97706),
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    } else if (selectedCondition == HourlyConditionType.PRECIPITATION) {
+                                        Text(
+                                            text = "${"%.1f".format(hour.precipitationMm)} mm",
+                                            fontSize = 12.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isNight) Color(0xFF38BDF8) else Color(0xFF0284C7),
                                             maxLines = 1,
                                             softWrap = false
                                         )
@@ -344,6 +388,14 @@ fun HourlyDetailScreen(
                                     fontWeight = FontWeight.ExtraBold,
                                     color = textColor
                                 )
+                                if (selectedCondition == HourlyConditionType.PRECIPITATION) {
+                                    Text(
+                                        text = "${"%.1f".format(hour.precipitationMm)} mm",
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (isNight) Color(0xFF38BDF8) else Color(0xFF0284C7)
+                                    )
+                                }
                             }
                         }
                     }

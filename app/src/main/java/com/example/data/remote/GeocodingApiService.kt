@@ -1,7 +1,6 @@
 package com.example.data.remote
 
 import com.squareup.moshi.Json
-import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.OkHttpClient
@@ -11,12 +10,10 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 
-@JsonClass(generateAdapter = true)
 data class GeocodingResponse(
     val results: List<GeocodingResult>? = null
 )
 
-@JsonClass(generateAdapter = true)
 data class GeocodingResult(
     val id: Long? = null,
     val name: String,

@@ -25,6 +25,7 @@ data class CurrentWeather(
     val windSpeed: Double,
     val uvIndex: Double,
     val cloudCover: Int,
+    val precipitationMm: Double = 0.0,
     val sunrise: String = "6:15 AM",
     val sunset: String = "7:45 PM"
 )
@@ -38,6 +39,7 @@ data class HourlyWeather(
     val conditionDescription: String,
     val isDay: Boolean,
     val precipitationProbability: Int,
+    val precipitationMm: Double = 0.0,
     val windSpeed: Double,
     val humidity: Int,
     val uvIndex: Double,
@@ -55,6 +57,7 @@ data class DailyWeather(
     val realFeelMax: Double,
     val realFeelMin: Double,
     val precipitationProbability: Int,
+    val precipitationMm: Double = 0.0,
     val sunrise: String,
     val sunset: String
 )
@@ -66,7 +69,7 @@ enum class AppStyle {
 
 enum class HourlyConditionType(val displayName: String, val unit: String) {
     TEMPERATURE("Temperature", "°C"),
-    PRECIPITATION("Rain Chance", "%"),
+    PRECIPITATION("Rain", "%"),
     WIND_SPEED("Wind Speed", "km/h"),
     HUMIDITY("Humidity", "%"),
     UV_INDEX("UV Index", ""),

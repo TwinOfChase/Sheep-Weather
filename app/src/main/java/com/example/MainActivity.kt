@@ -15,6 +15,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.WeatherScreen
 import com.example.ui.WeatherViewModel
 import com.example.ui.screens.AnimatedSplashScreen
+import com.example.ui.screens.CarModeWeatherScreen
 import com.example.ui.screens.HourlyDetailScreen
 import com.example.ui.screens.MainWeatherScreen
 import com.example.ui.theme.MyApplicationTheme
@@ -62,6 +63,8 @@ class MainActivity : ComponentActivity() {
                                         },
                                         onDeleteLocation = { viewModel.deleteLocation(it) },
                                         onOpenHourlyDetail = { viewModel.navigateToHourlyDetail() },
+                                        onOpenCarMode = { viewModel.navigateToCarMode() },
+                                        onRefreshAi = { viewModel.refreshAiOverview() },
                                         onOpenSettings = { viewModel.openSettings() },
                                         onToggleAutoTheme = { viewModel.toggleAutoTheme(it) },
                                         onSetManualNight = { viewModel.setManualNightMode(it) },
@@ -79,6 +82,23 @@ class MainActivity : ComponentActivity() {
                                         HourlyDetailScreen(
                                             weatherInfo = uiState.weatherInfo!!,
                                             isNight = uiState.isNightEffective,
+                                            onBack = { viewModel.navigateBackToMain() }
+                                        )
+                                    } else {
+                                        viewModel.navigateBackToMain()
+                                    }
+                                }
+                                WeatherScreen.CarMode -> {
+                                    BackHandler {
+                                        viewModel.navigateBackToMain()
+                                    }
+                                    if (uiState.weatherInfo != null) {
+                                        CarModeWeatherScreen(
+                                            weatherInfo = uiState.weatherInfo!!,
+                                            layersForecast = uiState.layersForecast,
+                                            aiOverview = uiState.aiOverview,
+                                            isCarParked = uiState.isCarParked,
+                                            onToggleParkMode = { viewModel.toggleCarParkMode() },
                                             onBack = { viewModel.navigateBackToMain() }
                                         )
                                     } else {

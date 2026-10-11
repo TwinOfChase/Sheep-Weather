@@ -299,6 +299,7 @@ class WeatherRepository(
             windSpeed = currDto?.windSpeed10m ?: 12.0,
             uvIndex = 4.2,
             cloudCover = 35,
+            precipitationMm = currDto?.precipitation ?: 0.0,
             sunrise = todaySunrise,
             sunset = todaySunset
         )
@@ -310,6 +311,7 @@ class WeatherRepository(
         val hRealFeels = dto.hourly?.apparentTemperature ?: emptyList()
         val hCodes = dto.hourly?.weatherCode ?: emptyList()
         val hPrecip = dto.hourly?.precipitationProbability ?: emptyList()
+        val hPrecipMm = dto.hourly?.precipitation ?: emptyList()
         val hWind = dto.hourly?.windSpeed10m ?: emptyList()
         val hHum = dto.hourly?.relativeHumidity2m ?: emptyList()
         val hUv = dto.hourly?.uvIndex ?: emptyList()
@@ -358,6 +360,13 @@ class WeatherRepository(
                 cal.get(Calendar.HOUR_OF_DAY)
             } catch (_: Exception) { idx % 24 }
             val hIsDay = hourNum in 6..19
+            val prob = hPrecip.getOrNull(i) ?: 10
+            val rainMm = hPrecipMm.getOrNull(i)
+                ?: if (prob >= 25 || code in 51..67 || code in 80..82) {
+                    Math.round(((prob - 15).coerceAtLeast(5) * 0.05) * 10.0) / 10.0
+                } else {
+                    0.0
+                }
 
             hourlyList.add(
                 HourlyWeather(
@@ -368,7 +377,8 @@ class WeatherRepository(
                     weatherCode = code,
                     conditionDescription = getWeatherDescription(code),
                     isDay = hIsDay,
-                    precipitationProbability = hPrecip.getOrNull(i) ?: 10,
+                    precipitationProbability = prob,
+                    precipitationMm = rainMm,
                     windSpeed = hWind.getOrNull(i) ?: 11.0,
                     humidity = hHum.getOrNull(i) ?: 60,
                     uvIndex = hUv.getOrNull(i) ?: if (hIsDay) 4.5 else 0.0,
@@ -386,6 +396,7 @@ class WeatherRepository(
         val dRfMax = dto.daily?.apparentTemperatureMax ?: emptyList()
         val dRfMin = dto.daily?.apparentTemperatureMin ?: emptyList()
         val dPrecip = dto.daily?.precipitationProbabilityMax ?: emptyList()
+        val dPrecipMm = dto.daily?.precipitationSum ?: emptyList()
 
         val dateParser = SimpleDateFormat("yyyy-MM-dd", Locale.US)
         val dayFormatter = SimpleDateFormat("EEE", Locale.US)
@@ -409,6 +420,13 @@ class WeatherRepository(
             val maxRf = dRfMax.getOrNull(i) ?: (maxT - 0.5)
             val minRf = dRfMin.getOrNull(i) ?: (minT - 1.0)
             val code = dCodes.getOrNull(i) ?: 1
+            val dProb = dPrecip.getOrNull(i) ?: 15
+            val dRainMm = dPrecipMm.getOrNull(i)
+                ?: if (dProb >= 25 || code in 51..67 || code in 80..82) {
+                    Math.round(((dProb - 15).coerceAtLeast(5) * 0.14) * 10.0) / 10.0
+                } else {
+                    0.0
+                }
 
             dailyList.add(
                 DailyWeather(
@@ -421,7 +439,8 @@ class WeatherRepository(
                     tempMin = minT,
                     realFeelMax = maxRf,
                     realFeelMin = minRf,
-                    precipitationProbability = dPrecip.getOrNull(i) ?: 15,
+                    precipitationProbability = dProb,
+                    precipitationMm = dRainMm,
                     sunrise = formatSunTime(dSunrise.getOrNull(i), "6:15 AM"),
                     sunset = formatSunTime(dSunset.getOrNull(i), "7:45 PM")
                 )

@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DataSaverOn
 import androidx.compose.material.icons.filled.DeviceThermostat
+import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Grain
 import androidx.compose.material.icons.filled.LocationOn
@@ -68,11 +69,15 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.AppStyle
 import com.example.data.model.DailyWeather
 import com.example.data.model.HourlyWeather
+import com.example.data.model.LayersForecast
+import com.example.data.model.LayersForecastCalculator
 import com.example.data.model.WeatherInfo
 import com.example.ui.WeatherUiState
+import com.example.ui.components.AiOverviewCard
 import com.example.ui.components.AppCopyrightFooter
 import com.example.ui.components.CartoonSheepCanvas
 import com.example.ui.components.ConditionIcon
+import com.example.ui.components.LayersForecastCard
 import com.example.ui.components.RealisticWeatherBackdrop
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -89,6 +94,8 @@ fun MainWeatherScreen(
     onAddLocationByName: (String, String?) -> Unit,
     onDeleteLocation: (com.example.data.local.LocationEntity) -> Unit,
     onOpenHourlyDetail: () -> Unit,
+    onOpenCarMode: () -> Unit = {},
+    onRefreshAi: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onToggleAutoTheme: (Boolean) -> Unit = {},
     onSetManualNight: (Boolean) -> Unit = {},
@@ -140,6 +147,10 @@ fun MainWeatherScreen(
                     onUseCurrentLocation = {
                         coroutineScope.launch { drawerState.close() }
                         onFetchCurrentLocation()
+                    },
+                    onOpenCarMode = {
+                        coroutineScope.launch { drawerState.close() }
+                        onOpenCarMode()
                     }
                 )
             }
@@ -241,6 +252,26 @@ fun MainWeatherScreen(
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = textColor
+                                )
+                            }
+                        }
+
+                        // Android Auto / 4-Quadrant Car Mode button
+                        Surface(
+                            color = cardBg,
+                            shape = CircleShape,
+                            shadowElevation = 2.dp,
+                            modifier = Modifier
+                                .clickable { onOpenCarMode() }
+                                .border(1.dp, cardBorder, CircleShape)
+                                .testTag("open_car_mode_button")
+                        ) {
+                            Box(modifier = Modifier.padding(8.dp)) {
+                                Icon(
+                                    imageVector = Icons.Default.DirectionsCar,
+                                    contentDescription = "Android Auto Car Mode",
+                                    tint = if (isNight) Color(0xFF38BDF8) else Color(0xFF0284C7),
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
@@ -525,8 +556,8 @@ fun MainWeatherScreen(
                                 )
                                 QuickMetricItem(
                                     icon = Icons.Default.Grain,
-                                    label = "Rain Prob",
-                                    value = "${weather.hourly.firstOrNull()?.precipitationProbability ?: 10}%",
+                                    label = "Rain",
+                                    value = "${weather.hourly.firstOrNull()?.precipitationProbability ?: 10}% • ${"%.1f".format(weather.hourly.firstOrNull()?.precipitationMm ?: weather.current.precipitationMm)} mm",
                                     isNight = isNight
                                 )
                             }
@@ -684,6 +715,20 @@ fun MainWeatherScreen(
                 }
             }
 
+            // 8-Hour Outfit & Layer Forecast Section:
+            // "Add a section featuring the amount of layers forecast information could include llike a tshirt emoji with a number and then show an umbrella if required this should be shown reflecting thw weather for the next 8 hours."
+            if (weather != null) {
+                item {
+                    val layers = uiState.layersForecast ?: remember(weather) {
+                        LayersForecastCalculator.calculate(weather.hourly, weather.current.temperature)
+                    }
+                    LayersForecastCard(
+                        layersForecast = layers,
+                        isNight = isNight
+                    )
+                }
+            }
+
             // Hourly Forecast Strip:
             // "I wish for it to have an hourly forecast that shows the temperature and an icon showing the condtitions.
             // Then by tapping on the hourly forecast strip it will open another screen where you can select a specific condition to show and scrol through the hours."
@@ -751,6 +796,19 @@ fun MainWeatherScreen(
                             }
                         }
                     }
+                }
+            }
+
+            // AI Overview Section with Gemini Logo:
+            // "Also add an ai overview section with the gemni logo. Itbshould give overview info for the day, and the next few days."
+            if (weather != null) {
+                item {
+                    AiOverviewCard(
+                        overview = uiState.aiOverview,
+                        isLoading = uiState.isAiLoading,
+                        isNight = isNight,
+                        onRefreshAi = onRefreshAi
+                    )
                 }
             }
 
@@ -915,7 +973,7 @@ private fun DailyForecastRow(
             Spacer(modifier = Modifier.width(8.dp))
             if (day.precipitationProbability > 20) {
                 Text(
-                    text = "${day.precipitationProbability}%",
+                    text = "${day.precipitationProbability}% (${"%.1f".format(day.precipitationMm)} mm)",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = if (isNight) Color(0xFF67E8F9) else Color(0xFF0284C7)

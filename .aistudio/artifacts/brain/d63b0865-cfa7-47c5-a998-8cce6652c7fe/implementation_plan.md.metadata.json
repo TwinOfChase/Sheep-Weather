@@ -1,0 +1,6 @@
+{
+  "summary":  "Implementation plan for Sheep Weather Android Auto integration, featuring a 4-quadrant car dashboard with a central Text-to-Speech readout button, automatic Park vs. Driving mode adaptation, native Android Auto launcher registration, and KSP build stability fixes.",
+  "updatedAt":  "2026-09-27T23:51:17.676469205Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

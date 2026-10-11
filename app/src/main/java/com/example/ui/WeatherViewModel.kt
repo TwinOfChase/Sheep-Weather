@@ -7,8 +7,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.local.LocationEntity
 import com.example.data.local.WeatherDatabase
 import com.example.data.model.AppStyle
+import com.example.data.model.LayersForecast
+import com.example.data.model.LayersForecastCalculator
 import com.example.data.model.MoonInfo
 import com.example.data.model.WeatherInfo
+import com.example.data.remote.AiWeatherOverview
+import com.example.data.remote.GeminiWeatherService
 import com.example.data.remote.GeocodingResult
 import com.example.data.repository.WeatherRepository
 import com.example.util.LocationHelper
@@ -22,6 +26,7 @@ import kotlinx.coroutines.launch
 sealed interface WeatherScreen {
     object Main : WeatherScreen
     object HourlyDetail : WeatherScreen
+    object CarMode : WeatherScreen
 }
 
 data class WeatherUiState(
@@ -39,8 +44,12 @@ data class WeatherUiState(
     val isSearchingCity: Boolean = false,
     val citySearchResults: List<GeocodingResult> = emptyList(),
     val currentScreen: WeatherScreen = WeatherScreen.Main,
+    val isCarParked: Boolean = false,
     val isSplashVisible: Boolean = true,
     val isSettingsOpen: Boolean = false,
+    val layersForecast: LayersForecast? = null,
+    val aiOverview: AiWeatherOverview? = null,
+    val isAiLoading: Boolean = false,
     val errorMessage: String? = null
 ) {
     val isNightEffective: Boolean
@@ -93,14 +102,21 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             try {
                 val weather = repository.getWeatherForLocation(location, forceRefresh)
                 val moon = WeatherRepository.calculateMoonPhase()
+                val layers = LayersForecastCalculator.calculate(weather.hourly, weather.current.temperature)
+                val initialAi = GeminiWeatherService.synthesizeLocalOverview(weather)
+
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         weatherInfo = weather,
                         moonInfo = moon,
+                        layersForecast = layers,
+                        aiOverview = initialAi,
                         errorMessage = null
                     )
                 }
+
+                fetchGeminiOverview(weather)
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
@@ -110,6 +126,23 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 }
             }
         }
+    }
+
+    private fun fetchGeminiOverview(weather: WeatherInfo) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isAiLoading = true) }
+            try {
+                val overview = GeminiWeatherService.generateOverview(weather)
+                _uiState.update { it.copy(aiOverview = overview, isAiLoading = false) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isAiLoading = false) }
+            }
+        }
+    }
+
+    fun refreshAiOverview() {
+        val weather = _uiState.value.weatherInfo ?: return
+        fetchGeminiOverview(weather)
     }
 
     fun selectLocation(locationId: Long) {
@@ -237,6 +270,14 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
     fun navigateToHourlyDetail() {
         _uiState.update { it.copy(currentScreen = WeatherScreen.HourlyDetail) }
+    }
+
+    fun navigateToCarMode() {
+        _uiState.update { it.copy(currentScreen = WeatherScreen.CarMode) }
+    }
+
+    fun toggleCarParkMode() {
+        _uiState.update { it.copy(isCarParked = !it.isCarParked) }
     }
 
     fun navigateBackToMain() {
