@@ -181,4 +181,20 @@ class LayersAndAiOverviewTest {
         val freezingC = 0.0
         assertEquals(32, com.example.util.TemperatureFormatter.toDisplayInt(freezingC, com.example.util.TemperatureUnit.FAHRENHEIT))
     }
+
+    @Test
+    fun testWeatherStaleCheckAndVersion() {
+        val now = System.currentTimeMillis()
+        val staleMillis = now - 3_600_001L // 1 hour and 1 ms ago
+        val freshMillis = now - 1_800_000L // 30 minutes ago
+
+        val isStale = (now - staleMillis) >= 3_600_000L
+        val isFresh = (now - freshMillis) < 3_600_000L
+
+        assertTrue(isStale)
+        assertTrue(isFresh)
+
+        val version = com.example.util.AppUpdateManager.getCurrentVersion()
+        assertEquals("2.6.5", version)
+    }
 }

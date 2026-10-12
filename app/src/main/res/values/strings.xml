@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">Sheep Weather</string>
+    <string name="widget_name">Sheep Weather &amp; Clock</string>
+    <string name="widget_description">Samsung-style weather and clock with customizable background and transparency</string>
+    <string name="widget_settings_title">Widget Settings</string>
 </resources>

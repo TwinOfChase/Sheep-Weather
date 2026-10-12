@@ -216,7 +216,7 @@ fun AnimatedSplashScreen(
                     shape = RoundedCornerShape(14.dp)
                 ) {
                     Text(
-                        text = "Version 2.5 • Offline First & Data Saver",
+                        text = "Version 2.6.5 • Offline First & Data Saver",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7),

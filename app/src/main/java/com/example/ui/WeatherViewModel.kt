@@ -20,6 +20,7 @@ import com.example.util.LocationHelper
 import com.example.util.TemperatureFormatter
 import com.example.util.TemperatureUnit
 import com.example.util.UpdateCheckResult
+import com.example.widget.SheepWeatherWidgetProvider
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -149,6 +150,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 if (isAi) {
                     fetchGeminiOverview(weather)
                 }
+
+                SheepWeatherWidgetProvider.refreshAllWidgets(getApplication())
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
@@ -183,6 +186,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     fun selectLocation(locationId: Long) {
         viewModelScope.launch {
             repository.selectLocation(locationId)
+            SheepWeatherWidgetProvider.refreshAllWidgets(getApplication())
         }
     }
 
@@ -259,6 +263,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     fun setTemperatureUnit(unit: TemperatureUnit) {
         prefs.edit().putString("temperature_unit", unit.name).apply()
         _uiState.update { it.copy(temperatureUnit = unit) }
+        SheepWeatherWidgetProvider.refreshAllWidgets(getApplication())
     }
 
     fun setAiEnabled(enabled: Boolean) {

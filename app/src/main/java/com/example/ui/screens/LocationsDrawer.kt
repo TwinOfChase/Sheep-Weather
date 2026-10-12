@@ -67,6 +67,8 @@ fun LocationsDrawerContent(
     onOpenSettings: () -> Unit = {},
     onUseCurrentLocation: () -> Unit = {},
     onCheckForUpdates: () -> Unit = {},
+    lastUpdatedTime: String? = null,
+    isFromCache: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -107,7 +109,7 @@ fun LocationsDrawerContent(
                         color = textColor
                     )
                     Text(
-                        text = "Slide-out Menu • v2.5",
+                        text = "Slide-out Menu • v2.6.5",
                         fontSize = 11.sp,
                         color = subTextColor
                     )
@@ -122,6 +124,56 @@ fun LocationsDrawerContent(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Close Drawer",
                     tint = subTextColor
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Data Saver & Last Updated Information card (Preserved in Drawer)
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = if (isNight) Color(0xFF1E293B) else Color(0xFFF1F5F9),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                if (isNight) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.08f)
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.DataSaverOn,
+                            contentDescription = "Data Saver",
+                            tint = if (isNight) Color(0xFF34D399) else Color(0xFF059669),
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Data Saver Active",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isNight) Color(0xFFA7F3D0) else Color(0xFF065F46)
+                        )
+                    }
+                    Text(
+                        text = if (isFromCache) "Cached" else "Online",
+                        fontSize = 10.5.sp,
+                        color = subTextColor
+                    )
+                }
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = lastUpdatedTime?.let { "Last updated: $it" } ?: "Zero background refresh • Saved locally",
+                    fontSize = 10.5.sp,
+                    color = subTextColor
                 )
             }
         }

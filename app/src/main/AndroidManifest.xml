@@ -28,6 +28,16 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".widget.SheepWeatherWidgetConfigureActivity"
+            android:exported="true"
+            android:label="@string/widget_settings_title"
+            android:theme="@style/Theme.MyApplication">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <receiver
             android:name=".widget.SheepWeatherWidgetProvider"
             android:exported="true">

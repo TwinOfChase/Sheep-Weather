@@ -40,7 +40,7 @@ object AppUpdateManager {
         return try {
             BuildConfig.VERSION_NAME
         } catch (_: Throwable) {
-            "2.5"
+            "2.6.5"
         }
     }
 

@@ -1,142 +1,182 @@
-# Sheep Weather — Settings Overhaul, Update & APK Downloader, and Startup Sync
+# Samsung-Style Weather & Clock Home Screen Widget (Android 10 through Android 16 & 17+)
 
-Implement a refined settings experience, direct in-app APK auto-downloader, GitHub update checker, startup splash synchronization, and top-bar cleanup while preserving native Android Auto capability.
+Add home screen widget capability to Sheep Weather modeled after Samsung's signature Weather & Clock widget setup. The architecture is engineered to provide universal compatibility, running seamlessly on older devices starting from **Android 10 (API 29)** and fully forward-compatible with **Android 15, Android 16 (API 36 / Baklava), Android 17**, and future releases. Users can customize the widget with black or white backgrounds, adjust transparency (0% to 100%), toggle automatic Dark Mode matching, and display live local weather alongside an auto-updating digital clock.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> **Summary of Confirmed Choices from Phase 1 Clarification:**
-> 1. **Android Auto**: Preserve the native `CarAppService` and vehicle manifest integration, but completely remove the Car Mode button from the phone interface to eliminate UI clutter.
-> 2. **APK Download & Updates**: Provide a one-tap button inside the Location pop-out menu that automatically downloads and prompts to install the latest APK (using Android's `DownloadManager` and GitHub releases), along with a "Check for Updates" version comparison.
-> 3. **Startup Loading**: Keep the animated sheep splash screen active until the initial weather forecast is fully loaded in the background, transitioning seamlessly into the populated main screen without loading flashes.
-> 4. **Settings Relocation & New Controls**: Move Settings to a prominent action inside the Location drawer. Add new capabilities:
->    - Toggle to disable Gemini AI features (hides the card and avoids API network calls).
->    - Celsius (°C) vs. Fahrenheit (°F) temperature toggle across all screens, cards, and hourly breakdowns.
->    - Day / Night theme selector with 3 options: Auto (solar-based), Fixed Light, and Fixed Dark.
->    - App style selector: Cartoon Sheep vs. Realistic Photo sheep.
-> 5. **Main Screen Top-Bar Cleanup**: Remove the Cartoon/Photo pill, Car Mode icon, Day/Night toggle, and Settings gear from the top bar so only the Location selector pill and Refresh button remain.
+> **Android 16 & 17 Support Confirmed**:
+> Yes, the widget is architected for full forward-compatibility with Android 16 and 17. Because standard Android `AppWidgetProvider` and `RemoteViews` form the foundational home screen widget API in the Android Open Source Project (AOSP), widgets built with modern standard practices (`FLAG_IMMUTABLE`, adaptive cell sizing, zero deprecated background services) are guaranteed by Google to run across future Android OS releases without breaking.
+> 
+> Key confirmed decisions:
+> - **OS Range**: Android 10 (API 29) minimum up through Android 15, Android 16, and Android 17+.
+> - **Primary Layout**: Combined Weather & Clock display inspired by Samsung One UI (digital clock, date, location name, weather condition icon, current temperature, and high/low).
+> - **Configuration Controls**: Samsung-style setup screen with Black / White color selectors, a Background Transparency slider (0% to 100%), and a "Match with Dark mode" toggle.
+> - **Interaction**: Tapping the widget launches Sheep Weather to the widget's selected location.
 
 ---
 
 ## 1. Overview & Core Concept
 
-- **What It Does**: Moves secondary configuration (theme, visual style, AI toggle, temperature units) into a dedicated Settings hub accessible from the Location drawer; streamlines the main dashboard; keeps the splash animation active until live data is ready; and provides direct APK auto-downloading and GitHub version updates.
-- **Target Audience**: Users who want a fast, clutter-free weather dashboard with personalized unit choices (°C/°F), privacy controls (disabling AI), and effortless one-tap app updates.
-- **Key Value**: Clean visual hierarchy, zero loading spinners on startup, full temperature unit flexibility, and functional self-updating without Google Play dependency.
+- **What It Does**: Provides a home screen widget that displays the current time, date, selected location, live temperature (formatted in Celsius or Fahrenheit based on user settings), weather condition, and Sheep Weather icon.
+- **Target Audience & Persona**: Users who want quick, glanceable weather and time directly from their home screen without opening the full application every time, styled cleanly to match their custom launcher or wallpaper.
+- **Key Value**: Delivers the familiar, polished Samsung Weather widget look with customizable translucency and dark mode matching, while keeping Sheep Weather's offline-first speed and battery efficiency.
 
 ---
 
-## 2. User Experience & Visual Design
+## 2. Multi-Version Compatibility (Android 10 to Android 16 & 17+)
+
+To ensure the widget runs smoothly on older Android 10 devices while taking full advantage of modern launcher capabilities in Android 14, 15, 16, and 17:
+
+1. **Adaptive Grid Sizing (`targetCellWidth` & `targetCellHeight`)**:
+   - Modern launchers (Android 12 through Android 16/17, Pixel Launcher, One UI 6/7) use cell-based sizing attributes (`android:targetCellWidth="4"` and `android:targetCellHeight="2"`).
+   - Older launchers (Android 10 & 11) gracefully fall back to `minWidth="250dp"` and `minHeight="110dp"` without errors.
+2. **Strict Security Compliance (`FLAG_IMMUTABLE`)**:
+   - All `PendingIntent`s are tagged with `PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE`. This satisfies Android 12+ strict security requirements and prevents security exceptions on Android 15/16/17.
+3. **Native System Clock Updates**:
+   - Uses Android's native `TextClock`. This avoids background service wakelocks or alarms that newer Android versions (Android 14, 15, 16) throttle under background execution limits, ensuring 100% reliable clock ticking on any Android version with zero battery penalty.
+4. **Resilient RemoteViews Graphics**:
+   - Backgrounds are drawn using scalable vector/shape assets with dynamic programmatic alpha calculation `(alphaPercent * 255 / 100)`. This works uniformly on Android 10, 11, 12, 13, 14, 15, 16, and 17.
+
+---
+
+## 3. User Experience & Visual Design
 
 ### Key User Flows
 
-1. **Seamless Startup Experience**:
-   - The user opens Sheep Weather.
-   - The cute cartoon sheep breathing animation plays.
-   - In the background, `WeatherViewModel` loads the selected location and fetches fresh weather from Open-Meteo and Room database cache.
-   - Once data is fully loaded (or safety timeout reached), the splash screen fades smoothly into the fully populated main dashboard—no empty cards or loading spinners.
+1. **Adding the Widget to Home Screen**:
+   - User long-presses home screen, picks **Widgets**, selects **Sheep Weather (Weather and Clock)**.
+   - The **Samsung-style Widget Settings / Setup Activity** immediately opens (`SheepWeatherWidgetConfigureActivity`).
+   - The setup screen displays a **Live Interactive Preview** of the widget at the top against a subtle preview backdrop.
+   - The user selects **White** or **Black** background, toggles **Match with Dark mode**, adjusts the **Transparency slider** (e.g., 0% solid, 30%, 50% glass, 100% transparent), and chooses the target location (defaulting to the currently selected location).
+   - Tapping **Save** commits the preferences, immediately paints the widget on the home screen, and finishes setup.
 
-2. **Cleaned-Up Main Screen Header**:
-   - The top header now contains only:
-     - **Location Selector Pill** (`LocationOn` + City Name + Arrow) on the left.
-     - **Refresh Button** (clean circular icon) on the right.
-   - Extraneous buttons (Photo/Cartoon toggle, Car button, Sun/Moon toggle, Settings gear) are removed from the main screen surface, letting the sheep backdrop shine.
+2. **Glanceable Daily Use**:
+   - The digital clock and date update smoothly in real time via Android's native `TextClock`.
+   - The weather portion displays the location name, temperature (e.g., `21°C` or `70°F`), weather condition (e.g., "Partly Cloudy"), and high/low temperatures.
+   - The background renders with the exact chosen color and opacity, respecting system dark mode if "Match with Dark mode" is enabled.
 
-3. **Location Pop-Out & Quick Actions**:
-   - Tapping the Location selector slides open the drawer.
-   - Above the saved cities list, user sees:
-     - **Settings Button** (`Settings` icon + "Settings & Preferences" subtitle).
-     - **Check for Updates & Auto-Download APK Button** (`Download` / `SystemUpdate` icon + current version badge).
-     - **Use Current Location** GPS detection button.
-   - Below are the saved favorite cities with selection and delete options.
+3. **Tapping the Widget**:
+   - Tapping the widget smoothly opens `MainActivity` showing the full forecast and layers breakdown for that location.
 
-4. **New Settings Hub**:
-   - Tapping Settings opens the dialog containing:
-     - **AI Weather Features**: Toggle switch with Gemini logo. When turned OFF, completely removes the AI Overview card from the main screen and disables Gemini API calls.
-     - **Temperature Unit**: Segmented toggle between **Celsius (°C)** and **Fahrenheit (°F)**. Automatically recalculates all values across current temp, real feel, min/max, 24h hourly strip, and 7-day forecast.
-     - **Appearance & Theme**: 3-way selector for **Auto (Day/Night)**, **Light Mode**, and **Dark Mode**.
-     - **Visual Style**: Radio toggle between **Cartoon Sheep** and **Realistic Photo**.
-     - **Direct APK Download**: "Download Latest APK" button with direct file download link.
-     - **Privacy & Data Saver**: Existing zero-tracking and cache options.
+4. **In-App Widget Customization**:
+   - Accessible also directly from within the app's Settings menu ("Widget Settings") so users can reconfigure their widget appearance anytime.
 
-5. **In-App Update & Auto-Download**:
-   - Tapping "Check for Updates" compares the local version (`v2.5`) against the latest GitHub release.
-   - Shows a dialog with the latest version number, release changelog, and a prominent **"Download & Install APK"** button.
-   - Tapping triggers an Android `DownloadManager` request downloading the `.apk` file to the device `Downloads` directory and opens the package installer intent.
+### Visual Identity & Theme (Samsung One UI Aesthetic)
+
+- **Widget Layout Geometry**:
+  - Left column: Large, clean bold digital clock (`h:mm` / `HH:mm`) with day of week & date underneath (`EEE, MMM d`), and location label.
+  - Right column: Weather condition icon, bold temperature display (`24°`), condition summary, and high/low badge.
+- **Background Styling**:
+  - Smooth rounded container (16dp corner radius).
+  - High-transparency / Glass mode: When opacity is below 100%, uses translucent backdrop.
+  - Text contrast protection: If dark mode or black background is active, text is crisp `#FFFFFF` with `#E2E8F0` secondary text; if light background is active, text is dark `#0F172A` with `#475569` secondary text.
 
 ---
 
-## 3. Key Product Decisions & Trade-Offs
+## 4. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Moving Toggles to Settings vs. Keeping in Header**
-  - *Chosen Approach*: Move Style (Cartoon/Photo) and Theme (Day/Night/Auto) into Settings, accessed via the Location drawer.
-  - *Why*: The top bar had become overcrowded with 5 separate icon buttons. Moving them declutters the header and establishes a clear single entry point for preferences.
-- **Decision 2: Unit Conversion Strategy (°C vs. °F)**
-  - *Chosen Approach*: Store temperatures in canonical Celsius in the data models / database, and apply unit formatting helper `TemperatureFormatter.format(celsius, unit)` in the UI layer.
-  - *Why*: Keeps database cache and API contracts consistent while allowing instant switching without refetching network forecasts.
-- **Decision 3: APK Auto-Download Implementation**
-  - *Chosen Approach*: Dual-layer downloader:
-    1. Query GitHub releases API (`/repos/{owner}/{repo}/releases/latest`) to find the `.apk` asset download URL.
-    2. Enqueue the APK via Android `DownloadManager` with notification visibility, and launch `ACTION_VIEW` with `application/vnd.android.package-archive` MIME type when completed. Fallback to direct browser download if storage permissions are restricted.
-  - *Why*: Guarantees a working download on any device or emulator without relying on external app stores.
-- **Decision 4: Retaining Native Android Auto Service**
-  - *Chosen Approach*: Retain `SheepWeatherCarAppService` and `automotive_app_desc.xml` in the Android manifest, but remove `WeatherScreen.CarMode` and the phone screen car button.
-  - *Why*: Matches user clarification: Android Auto head unit capability remains intact for cars that connect, but the phone UI remains pure.
+- **Standard RemoteViews over Jetpack Glance**:
+  - *Chosen Approach*: Pure Android `RemoteViews` with XML layouts and dynamic background tint/alpha.
+  - *Why*: Delivers maximum backwards compatibility down to Android 10 while preserving full forward compatibility with Android 16 and 17. Jetpack Glance has experimental overhead and occasional layout inflation issues on custom vendor launchers. Pure `RemoteViews` is natively supported across all OEM skins.
+- **Native TextClock for Time Display**:
+  - *Chosen Approach*: Use Android's `TextClock` view inside the widget layout.
+  - *Why*: RemoteViews cannot run 1-second/1-minute background timer loops without draining battery. `TextClock` is rendered by the system SystemUI/Launcher process, ensuring exact minute updates with zero battery drain.
+- **Dynamic Color & Opacity Application**:
+  - *Chosen Approach*: Layered background drawable with corner radius, colored dynamically via alpha integer calculation: `(alphaPercent * 255 / 100) shl 24 or (rgb and 0x00FFFFFF)`.
+  - *Why*: Perfectly handles 0% to 100% transparency on both black and white backgrounds on all Android versions back to Android 10.
+- **Preference Storage per Widget ID**:
+  - *Chosen Approach*: `SharedPreferences` named `sheep_weather_widget_prefs` storing settings per `appWidgetId` (color, transparency, matchDarkMode, locationId).
+  - *Why*: Allows users to have multiple widgets with different configurations (e.g., one transparent on page 1, one solid black on page 2).
 
 ---
 
-## 4. Technical Architecture & Data Strategy
-
-### System Architecture Diagram
+## 5. Technical Architecture & Data Strategy
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        Sheep Weather ViewModel                         │
-│  State: isLoading, weatherInfo, tempUnit (C/F), isAiEnabled, themeMode │
-└───────────────────┬────────────────────────────────┬───────────────────┘
-                    │                                │
-                    ▼                                ▼
-       ┌────────────────────────┐       ┌────────────────────────┐
-       │   Locations Drawer     │       │     Settings Dialog    │
-       │  • Saved Cities List   │       │  • AI Features Toggle  │
-       │  • Use Current GPS     │       │  • °C vs °F Selector   │
-       │  • Open Settings       │       │  • Auto/Light/Dark     │
-       │  • Check for Updates   │       │  • Cartoon vs Photo    │
-       │  • Auto-Download APK   │       │  • APK Direct Link     │
-       └────────────┬───────────┘       └────────────────────────┘
-                    │
-                    ▼
-       ┌────────────────────────────────────────────────────────┐
-       │                AppUpdateManager (Helper)               │
-       │  • Queries GitHub Latest Release                       │
-       │  • Enqueues APK via Android DownloadManager            │
-       │  • Prompts Package Installer Intent                    │
-       └────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                 HOME SCREEN / LAUNCHER                      │
+│                                                             │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  SheepWeatherWidget (RemoteViews 4x2)                 │  │
+│  │                                                       │  │
+│  │  ┌───────────────────┐     ┌───────────────────────┐  │  │
+│  │  │  10:24 AM         │     │  ⛅ 21°C               │  │  │
+│  │  │  Mon, Oct 12      │     │  Partly Cloudy        │  │  │
+│  │  │  📍 London        │     │  H: 23°  L: 14°       │  │  │
+│  │  └───────────────────┘     └───────────────────────┘  │  │
+│  │                                                       │  │
+│  └───────────────────────────────────────────────────────┘  │
+└───────────────────────────▲─────────────────────────────────┘
+                            │
+               AppWidgetManager.updateAppWidget
+                            │
+┌───────────────────────────┴─────────────────────────────────┐
+│               SheepWeatherWidgetProvider                    │
+│                                                             │
+│  - onUpdate() / updateWidgetInstance()                      │
+│  - Reads widget prefs (Black/White, Alpha, DarkMode match)  │
+│  - Reads WeatherDatabase / WeatherRepository cache          │
+│  - Formats temperature (°C / °F)                            │
+│  - Sets RemoteViews text, colors, alpha & click pending     │
+└───────────────────────────▲─────────────────────────────────┘
+                            │
+        Invoked on Add or via In-App Settings
+                            │
+┌───────────────────────────┴─────────────────────────────────┐
+│        SheepWeatherWidgetConfigureActivity (Compose UI)     │
+│                                                             │
+│  - Live Interactive Widget Preview                          │
+│  - Background: [White] [Black] radio toggle                 │
+│  - Match with Dark Mode: Switch (On/Off)                    │
+│  - Transparency Slider: 0% (Solid) ───────● 100% (Clear)    │
+│  - Location Picker: Dropdown of saved locations             │
+│  - Save / Apply Button                                      │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Component & State Mapping
+### Component Details
 
-1. **`WeatherViewModel` State Additions**:
-   - `temperatureUnit: TemperatureUnit` (`CELSIUS` or `FAHRENHEIT`), persisted in `SharedPreferences`.
-   - `isAiEnabled: Boolean` (default `true`), persisted in `SharedPreferences`.
-   - `themeMode: ThemeMode` (`AUTO`, `LIGHT`, `DARK`), replacing binary boolean flags.
-   - `isInitialLoadCompleted: StateFlow<Boolean>`: Emits `true` only when the first location's weather data has been retrieved and mapped.
-2. **`AnimatedSplashScreen` Synchronization**:
-   - Listens to `uiState.isInitialLoadCompleted`.
-   - Minimum animation delay of 1.2s to enjoy the cute sheep animation, then dismisses as soon as `isInitialLoadCompleted == true` (with 4s max safety timeout).
-3. **`TemperatureFormatter`**:
-   - Utility converting Celsius values: `F = (C * 9/5) + 32`.
-   - Formats values cleanly (e.g. `16°C` vs `61°F`) across Hero Temperature, Real Feel, Hourly cards, 7-Day forecast, and Layer advice.
-4. **`AppUpdateManager`**:
-   - Manages version check against GitHub releases API.
-   - Implements download & install logic via `DownloadManager`.
+1. **`app/src/main/res/layout/sheep_weather_widget.xml`**:
+   - Modern Samsung One UI layout:
+     - Root `FrameLayout` with rounded background drawable (`@drawable/widget_rounded_background`).
+     - Content `LinearLayout` (horizontal):
+       - Left side: `TextClock` (time), `TextClock` (date), `TextView` (city name).
+       - Right side: `ImageView` (weather condition icon), `TextView` (current temp), `TextView` (condition & high/low).
+   - Click listener on root view launching `MainActivity`.
 
----
+2. **`app/src/main/java/com/example/widget/WidgetPreferences.kt`**:
+   - Data class and helper methods for loading/saving:
+     - `backgroundColor`: `"WHITE"` or `"BLACK"`
+     - `transparencyPercent`: `0` to `100` (integer)
+     - `matchDarkMode`: `Boolean`
+     - `locationId`: `Long`
+   - Stored in `SharedPreferences("sheep_weather_widget_prefs", Context.MODE_PRIVATE)`.
 
-## Implementation Verification Plan
+3. **`app/src/main/java/com/example/widget/SheepWeatherWidgetProvider.kt`**:
+   - Handles `onUpdate`, `onReceive`, and explicit widget update requests.
+   - Calculates effective background color:
+     - If `matchDarkMode` is true, detects system configuration (`isNight = (resources.configuration.uiMode and UI_MODE_NIGHT_MASK) == UI_MODE_NIGHT_YES`).
+     - Applies alpha: `alphaByte = ((100 - transparencyPercent) * 255 / 100)`.
+     - Tints text colors: Crisp white with soft shadow for dark backgrounds or high transparency; dark slate for white opaque backgrounds.
+   - Sets weather data: Location name, temperature formatted with active `TemperatureUnit`, condition, high/low, and appropriate weather icon drawable.
+   - Sets `PendingIntent` to launch `MainActivity`.
 
-1. **Compilation Check**: Run `compile_applet` to ensure all new settings, formatters, and update managers compile cleanly.
-2. **Splash Screen Startup**: Verify the splash screen remains active until initial weather data is loaded.
-3. **Settings Controls**: Verify AI toggle hides the AI card, Celsius/Fahrenheit updates all screen temperatures, and theme selector supports Auto/Light/Dark.
-4. **Header Cleanliness**: Verify the main screen header only shows Location and Refresh.
-5. **APK Auto-Download & Update Check**: Verify tapping "Check for Updates" and "Download APK" triggers the download action correctly.
+4. **`app/src/main/java/com/example/widget/SheepWeatherWidgetConfigureActivity.kt`**:
+   - Jetpack Compose configuration screen matching Samsung One UI weather widget setup.
+   - Live interactive preview updating in real time as the user drags the slider or changes color.
+   - Returns `Activity.RESULT_OK` with `EXTRA_APPWIDGET_ID`.
+
+5. **`app/src/main/res/xml/sheep_weather_widget_info.xml` & `AndroidManifest.xml`**:
+   - Configured with `android:configure="com.example.widget.SheepWeatherWidgetConfigureActivity"`.
+   - Appropriate minWidth/minHeight (250dp x 110dp) + modern `targetCellWidth="4"` and `targetCellHeight="2"`.
+   - Activity registered with intent filter `APPWIDGET_CONFIGURE`.
+
+6. **In-App Integration (`SettingsDialog.kt`)**:
+   - Added option "Customize Home Widget" in the settings dialog allowing easy preview and configuration anytime.
+
+### Verification Plan
+
+1. Compile the applet via `compile_applet` to ensure error-free compilation.
+2. Run unit tests (`gradle :app:testDebugUnitTest`) ensuring no regressions in repository and viewmodel logic.
+3. Verify widget layout XML compatibility with Android 10+ and modern forward constraints.

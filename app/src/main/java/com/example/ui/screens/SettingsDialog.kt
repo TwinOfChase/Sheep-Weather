@@ -22,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import com.example.widget.SheepWeatherWidgetConfigureActivity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
@@ -709,6 +710,65 @@ fun SettingsDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // Section: Home Screen Widget
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = cardBg),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, cardBorder, RoundedCornerShape(16.dp))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "📱",
+                                fontSize = 18.sp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Home Screen Widget",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = textColor
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Configure Samsung-style Weather & Clock widget background (black or white), transparency slider, and dark mode match:",
+                            fontSize = 12.sp,
+                            color = subTextColor
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        OutlinedButton(
+                            onClick = {
+                                context.startActivity(Intent(context, SheepWeatherWidgetConfigureActivity::class.java))
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("btn_configure_widget"),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Customize Widget Settings",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
                 // Section 6: Current Location
                 Card(
                     colors = CardDefaults.cardColors(containerColor = cardBg),
@@ -969,7 +1029,7 @@ fun SettingsDialog(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Sheep Weather v2.5",
+                                text = "Sheep Weather v2.6.5",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = textColor

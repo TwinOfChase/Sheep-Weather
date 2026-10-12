@@ -26,7 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.DataSaverOn
 import androidx.compose.material.icons.filled.DeviceThermostat
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FileDownload
@@ -110,6 +109,12 @@ fun MainWeatherScreen(
     val style = uiState.appStyle
     val tempUnit = uiState.temperatureUnit
 
+    // Stale weather check: more than 1 hour (3600s) since last refreshed
+    val isMoreThanOneHourSinceRefresh = remember(weather?.lastUpdatedMillis) {
+        val lastMillis = weather?.lastUpdatedMillis ?: 0L
+        if (lastMillis <= 0L) true else (System.currentTimeMillis() - lastMillis) >= 3_600_000L
+    }
+
     // High contrast typography colors
     val textColor = if (isNight) Color(0xFFF8FAFC) else Color(0xFF0F172A)
     val subTextColor = if (isNight) Color(0xFF94A3B8) else Color(0xFF475569)
@@ -129,6 +134,8 @@ fun MainWeatherScreen(
                     locations = uiState.locations,
                     selectedLocationId = uiState.selectedLocation?.id ?: 0L,
                     isNight = isNight,
+                    lastUpdatedTime = weather?.current?.time,
+                    isFromCache = weather?.isFromCache ?: false,
                     onSelectLocation = { id ->
                         onSelectLocation(id)
                         coroutineScope.launch { drawerState.close() }
@@ -226,14 +233,20 @@ fun MainWeatherScreen(
                             }
                         }
 
-                        // Refresh button
+                        // Refresh button (turns green when > 1 hour since last refresh)
+                        val refreshTint = if (isMoreThanOneHourSinceRefresh) Color(0xFF22C55E) else textColor
+                        val refreshBorder = if (isMoreThanOneHourSinceRefresh) Color(0xFF22C55E) else cardBorder
+                        val refreshBg = if (isMoreThanOneHourSinceRefresh) {
+                            if (isNight) Color(0xFF14532D).copy(alpha = 0.55f) else Color(0xFFDCFCE7)
+                        } else cardBg
+
                         Surface(
-                            color = cardBg,
+                            color = refreshBg,
                             shape = CircleShape,
                             shadowElevation = 2.dp,
                             modifier = Modifier
                                 .clickable { onRefresh() }
-                                .border(1.dp, cardBorder, CircleShape)
+                                .border(1.5.dp, refreshBorder, CircleShape)
                                 .testTag("refresh_button")
                         ) {
                             Box(modifier = Modifier.padding(8.dp)) {
@@ -241,55 +254,18 @@ fun MainWeatherScreen(
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(20.dp),
                                         strokeWidth = 2.dp,
-                                        color = if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7)
+                                        color = if (isMoreThanOneHourSinceRefresh) Color(0xFF22C55E) else if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7)
                                     )
                                 } else {
                                     Icon(
                                         imageVector = Icons.Default.Refresh,
                                         contentDescription = "Refresh",
-                                        tint = textColor,
+                                        tint = refreshTint,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
                             }
                         }
-                    }
-                }
-
-                // Data Saver / Cache / Privacy status indicator
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                color = if (isNight) Color(0xFF0F172A).copy(alpha = 0.7f) else Color(0xFFF1F5F9).copy(alpha = 0.85f),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.DataSaverOn,
-                                contentDescription = "Data Saver",
-                                tint = if (isNight) Color(0xFF34D399) else Color(0xFF059669),
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Data Saver: Zero background refresh • Cached locally",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = if (isNight) Color(0xFFA7F3D0) else Color(0xFF065F46)
-                            )
-                        }
-
-                        Text(
-                            text = weather?.let { "Updated: ${it.current.time}" } ?: "Offline",
-                            fontSize = 10.5.sp,
-                            color = subTextColor
-                        )
                     }
                 }
 

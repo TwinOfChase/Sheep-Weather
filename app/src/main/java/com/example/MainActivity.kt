@@ -1,5 +1,6 @@
 package com.example
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -31,6 +32,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        handleWidgetIntent(intent)
         setContent {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -97,5 +99,18 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleWidgetIntent(intent)
+    }
+
+    private fun handleWidgetIntent(intent: Intent?) {
+        val targetId = intent?.getLongExtra("TARGET_LOCATION_ID", -1L) ?: -1L
+        if (targetId > 0) {
+            viewModel.selectLocation(targetId)
+        }
+    }
 }
+
 

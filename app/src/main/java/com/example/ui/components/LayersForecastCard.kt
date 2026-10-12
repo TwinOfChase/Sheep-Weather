@@ -57,50 +57,22 @@ fun LayersForecastCard(
                 .fillMaxWidth()
                 .padding(18.dp)
         ) {
-            // Header Row: Title and "Next Few Hours" badge
+            // Header Row: Title
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "👕",
-                        fontSize = 20.sp,
-                        modifier = Modifier.padding(end = 6.dp)
-                    )
-                    Text(
-                        text = "Layers & Outfit Forecast",
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textColor
-                    )
-                }
-
-                // Next Few Hours Badge
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .background(
-                            color = if (isNight) Color(0xFF1E2D52) else Color(0xFFE2E8F0),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Schedule,
-                        contentDescription = null,
-                        tint = if (isNight) Color(0xFF60A5FA) else Color(0xFF2563EB),
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Next Few Hours",
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isNight) Color(0xFF93C5FD) else Color(0xFF1D4ED8)
-                    )
-                }
+                Text(
+                    text = "👕",
+                    fontSize = 20.sp,
+                    modifier = Modifier.padding(end = 6.dp)
+                )
+                Text(
+                    text = "Layers & Outfit Forecast",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor
+                )
             }
 
             Spacer(modifier = Modifier.height(14.dp))
