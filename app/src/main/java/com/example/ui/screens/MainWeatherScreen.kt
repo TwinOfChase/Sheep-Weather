@@ -21,12 +21,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.graphicsLayer
+import com.example.util.DevicePerformanceHelper
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeviceThermostat
+import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Grain
@@ -49,8 +53,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -103,6 +110,9 @@ fun MainWeatherScreen(
     val context = LocalContext.current
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
+    val isScrolling = listState.isScrollInProgress
+    val isLowEnd = remember { DevicePerformanceHelper.isLowEndDevice(context) }
 
     val weather = uiState.weatherInfo
     val isNight = uiState.isNightEffective
@@ -167,20 +177,27 @@ fun MainWeatherScreen(
                 AppStyle.CARTOON_SHEEP -> {
                     CartoonSheepCanvas(
                         isNight = isNight,
-                        modifier = Modifier.fillMaxSize()
+                        isScrolling = isScrolling,
+                        isLowEndDevice = isLowEnd,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer { clip = false }
                     )
                 }
                 AppStyle.REALISTIC_SHEEP -> {
                     RealisticWeatherBackdrop(
                         isNight = isNight,
                         moonInfo = uiState.moonInfo,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer { clip = false }
                     )
                 }
             }
 
             // 2. Foreground scrollable content with maximum readability
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .statusBarsPadding(),
@@ -188,7 +205,7 @@ fun MainWeatherScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Top Navigation & Control Header (Cleaned up: Only Location Pill and Refresh Button)
-                item {
+                item(key = "top_control_header") {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -269,19 +286,42 @@ fun MainWeatherScreen(
                     }
                 }
 
-                // Blank space for mascot viewing
-                item {
-                    Spacer(
+                // Viewing area for mascot & backdrop (moon phase displayed safely below location and reload controls)
+                item(key = "mascot_viewing_space") {
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(170.dp)
                             .testTag("background_viewing_space")
-                    )
+                    ) {
+                        if (isNight) {
+                            Surface(
+                                color = Color.Black.copy(alpha = 0.65f),
+                                shape = RoundedCornerShape(16.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    Color.White.copy(alpha = 0.15f)
+                                ),
+                                modifier = Modifier
+                                    .align(Alignment.TopCenter)
+                                    .padding(top = 4.dp)
+                                    .testTag("moon_phase_badge")
+                            ) {
+                                Text(
+                                    text = "🌙 ${uiState.moonInfo.phaseName} • ${uiState.moonInfo.illuminationPercent}%",
+                                    color = Color(0xFFE2E8F0),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+                                )
+                            }
+                        }
+                    }
                 }
 
                 // Primary Temperature Hero Card (Combined Actual and Real Feel)
                 if (weather != null) {
-                    item {
+                    item(key = "temperature_hero_card") {
                         Surface(
                             color = cardBg,
                             shape = RoundedCornerShape(24.dp),
@@ -435,7 +475,7 @@ fun MainWeatherScreen(
 
                 // Sunset & Sunrise Section
                 if (weather != null) {
-                    item {
+                    item(key = "sunrise_sunset_card") {
                         Surface(
                             color = cardBg,
                             shape = RoundedCornerShape(24.dp),
@@ -583,7 +623,7 @@ fun MainWeatherScreen(
 
                 // 8-Hour Outfit & Layer Forecast Section
                 if (weather != null) {
-                    item {
+                    item(key = "outfit_layers_card") {
                         val layers = uiState.layersForecast ?: remember(weather) {
                             LayersForecastCalculator.calculate(weather.hourly, weather.current.temperature)
                         }
@@ -596,7 +636,7 @@ fun MainWeatherScreen(
 
                 // Hourly Forecast Strip
                 if (weather != null) {
-                    item {
+                    item(key = "hourly_forecast_strip") {
                         Surface(
                             color = cardBg,
                             shape = RoundedCornerShape(24.dp),
@@ -650,7 +690,10 @@ fun MainWeatherScreen(
                                     contentPadding = PaddingValues(horizontal = 14.dp),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    items(weather.hourly.take(24)) { hour ->
+                                    items(
+                                        items = weather.hourly.take(24),
+                                        key = { it.timeIso }
+                                    ) { hour ->
                                         HourlyStripCard(
                                             hour = hour,
                                             isNight = isNight,
@@ -665,7 +708,7 @@ fun MainWeatherScreen(
 
                 // AI Overview Section with Gemini Logo (Gated behind isAiEnabled)
                 if (weather != null && uiState.isAiEnabled) {
-                    item {
+                    item(key = "ai_overview_card") {
                         AiOverviewCard(
                             overview = uiState.aiOverview,
                             isLoading = uiState.isAiLoading,
@@ -675,9 +718,16 @@ fun MainWeatherScreen(
                     }
                 }
 
-                // 7-Day Forecast Section
+                // 7-Day Forecast Section (Shows 3 days with a button to expand to 7)
                 if (weather != null) {
-                    item {
+                    item(key = "seven_day_forecast_card") {
+                        var isForecastExpanded by remember { mutableStateOf(false) }
+                        val displayedDays = if (isForecastExpanded) {
+                            weather.daily.take(7)
+                        } else {
+                            weather.daily.take(3)
+                        }
+
                         Surface(
                             color = cardBg,
                             shape = RoundedCornerShape(24.dp),
@@ -685,28 +735,41 @@ fun MainWeatherScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
+                                .testTag("seven_day_forecast_card")
                         ) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(18.dp)
                             ) {
-                                Text(
-                                    text = "7-Day Forecast",
-                                    fontSize = 17.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = textColor
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "7-Day Forecast",
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = textColor
+                                    )
+                                    Text(
+                                        text = if (isForecastExpanded) "Showing 7 days" else "Showing 3 days",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = subTextColor
+                                    )
+                                }
                                 Spacer(modifier = Modifier.height(14.dp))
 
-                                weather.daily.take(7).forEachIndexed { index, day ->
+                                displayedDays.forEachIndexed { index, day ->
                                     DailyForecastRow(
                                         day = day,
                                         isNight = isNight,
                                         isToday = index == 0,
                                         temperatureUnit = tempUnit
                                     )
-                                    if (index < 6) {
+                                    if (index < displayedDays.size - 1) {
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -716,13 +779,51 @@ fun MainWeatherScreen(
                                         )
                                     }
                                 }
+
+                                if (weather.daily.size > 3) {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Surface(
+                                        shape = RoundedCornerShape(14.dp),
+                                        color = if (isNight) Color(0xFF1E2D52) else Color(0xFFF1F5F9),
+                                        border = androidx.compose.foundation.BorderStroke(
+                                            1.dp,
+                                            if (isNight) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)
+                                        ),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { isForecastExpanded = !isForecastExpanded }
+                                            .testTag("expand_forecast_button")
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 10.dp, horizontal = 16.dp),
+                                            horizontalArrangement = Arrangement.Center,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = if (isForecastExpanded) "Show Less" else "Expand to 7-Day Forecast",
+                                                fontSize = 13.5.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = if (isNight) Color(0xFF93C5FD) else Color(0xFF1D4ED8)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Icon(
+                                                imageVector = if (isForecastExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                                contentDescription = if (isForecastExpanded) "Show Less" else "Expand to 7-Day Forecast",
+                                                tint = if (isNight) Color(0xFF93C5FD) else Color(0xFF1D4ED8),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
 
                 // Bottom space and Mandatory Copyright
-                item {
+                item(key = "copyright_footer") {
                     AppCopyrightFooter(isNight = isNight)
                     Spacer(modifier = Modifier.height(20.dp))
                 }

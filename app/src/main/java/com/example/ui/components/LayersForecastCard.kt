@@ -250,45 +250,6 @@ fun LayersForecastCard(
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Clothing items recommendation chips reflecting the next few hours
-            val displayedItems = if (layersForecast.isTooWindyForUmbrella && layersForecast.isUmbrellaRequired) {
-                listOf("Hooded Raincoat") + layersForecast.clothingItems
-            } else {
-                layersForecast.clothingItems
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                displayedItems.forEach { item ->
-                    Box(
-                        modifier = Modifier
-                            .background(
-                                color = if (isNight) Color(0xFF1E2D52) else Color(0xFFF1F5F9),
-                                shape = RoundedCornerShape(10.dp)
-                            )
-                            .border(
-                                1.dp,
-                                if (isNight) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.08f),
-                                RoundedCornerShape(10.dp)
-                            )
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
-                    ) {
-                        Text(
-                            text = "• $item",
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (isNight) Color(0xFFE2E8F0) else Color(0xFF334155)
-                        )
-                    }
-                }
-            }
         }
     }
 }

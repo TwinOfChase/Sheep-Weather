@@ -17,8 +17,8 @@ android {
     applicationId = "com.aistudio.sheepweather.kzyxwl"
     minSdk = 24
     targetSdk = 36
-    versionCode = 6
-    versionName = "2.6.5"
+    versionCode = 7
+    versionName = "2.7.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

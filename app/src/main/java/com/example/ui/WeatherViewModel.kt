@@ -119,6 +119,23 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 val selected = locList.find { it.isSelected } ?: locList.firstOrNull()
                 _uiState.update { it.copy(locations = locList, selectedLocation = selected) }
                 if (selected != null) {
+                    // Parallel fast path: if cached weather exists from previous session, hydrate immediately (<5ms)
+                    val fastCache = repository.getCachedWeatherOnly(selected)
+                    if (fastCache != null && _uiState.value.weatherInfo == null) {
+                        val moon = WeatherRepository.calculateMoonPhase()
+                        val layers = LayersForecastCalculator.calculate(fastCache.hourly, fastCache.current.temperature)
+                        val isAi = _uiState.value.isAiEnabled
+                        val initialAi = if (isAi) GeminiWeatherService.synthesizeLocalOverview(fastCache) else null
+                        _uiState.update {
+                            it.copy(
+                                weatherInfo = fastCache,
+                                isInitialLoadCompleted = true,
+                                moonInfo = moon,
+                                layersForecast = layers,
+                                aiOverview = initialAi
+                            )
+                        }
+                    }
                     loadWeatherForLocation(selected, forceRefresh = false)
                 }
             }

@@ -195,6 +195,6 @@ class LayersAndAiOverviewTest {
         assertTrue(isFresh)
 
         val version = com.example.util.AppUpdateManager.getCurrentVersion()
-        assertEquals("2.6.5", version)
+        assertEquals("2.7.0", version)
     }
 }

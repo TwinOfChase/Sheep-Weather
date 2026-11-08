@@ -24,9 +24,9 @@ Designed to be an intuitive weather app that is 100% ad-free and fun to use, She
 
 ## 📥 Installation
 
-Download the latest ready-to-install APK (`SheepWeather-v2.6.5.apk`) from the [Releases](https://github.com/TwinOfChase/Sheep-Weather/releases) tab.
+Download the latest ready-to-install APK (`SheepWeather-v2.7.0.apk`) from the [Releases](https://github.com/TwinOfChase/Sheep-Weather/releases) tab.
 
-1. Download `SheepWeather-v2.6.5.apk` to your Android device.
+1. Download `SheepWeather-v2.7.0.apk` to your Android device.
 2. Tap the downloaded file in your browser downloads or Files app.
 3. Tap **Install** (if prompted, allow "Install unknown apps" for your browser).
 4. Launch **Sheep Weather**!

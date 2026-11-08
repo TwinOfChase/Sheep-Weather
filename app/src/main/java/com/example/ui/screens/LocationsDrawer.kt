@@ -109,7 +109,7 @@ fun LocationsDrawerContent(
                         color = textColor
                     )
                     Text(
-                        text = "Slide-out Menu • v2.6.5",
+                        text = "Slide-out Menu • v2.7.0",
                         fontSize = 11.sp,
                         color = subTextColor
                     )

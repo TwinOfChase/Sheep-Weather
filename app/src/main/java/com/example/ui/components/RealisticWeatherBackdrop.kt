@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -32,8 +33,12 @@ fun RealisticWeatherBackdrop(
     moonInfo: MoonInfo,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier.fillMaxSize()) {
-        // Image in the top section, shifted down so it is not covered by control buttons
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .graphicsLayer { clip = false }
+    ) {
+        // Images in the top section, shifted down so they are not covered by the location selector or reload button
         if (isNight) {
             // "In The realistic version the sheep image should be replaced with a picture of the moon reflecting the moon phases."
             Image(
@@ -42,26 +47,9 @@ fun RealisticWeatherBackdrop(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 54.dp)
-                    .height(320.dp)
+                    .padding(top = 96.dp)
+                    .height(300.dp)
             )
-
-            // Moon phase badge overlay placed below control buttons
-            Surface(
-                color = Color.Black.copy(alpha = 0.65f),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 64.dp, end = 16.dp)
-            ) {
-                Text(
-                    text = "🌙 ${moonInfo.phaseName} • ${moonInfo.illuminationPercent}%",
-                    color = Color(0xFFE2E8F0),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                )
-            }
         } else {
             // "The second style should feature a real life photo of a sheep that again transitions into a glassy blurred backround again for maximum readibility."
             Image(
@@ -70,8 +58,8 @@ fun RealisticWeatherBackdrop(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 54.dp)
-                    .height(320.dp)
+                    .padding(top = 96.dp)
+                    .height(300.dp)
             )
         }
 

@@ -199,6 +199,26 @@ class WeatherRepository(
         } catch (_: Exception) {}
     }
 
+    /**
+     * Fast, non-blocking synchronous cache lookup for instant warm UI initialization on startup.
+     */
+    suspend fun getCachedWeatherOnly(location: LocationEntity): WeatherInfo? = withContext(Dispatchers.IO) {
+        val cacheKey = "%.3f_%.3f".format(Locale.US, location.latitude, location.longitude)
+        val cached = weatherDao.getCachedWeather(cacheKey) ?: return@withContext null
+        try {
+            val parsed = responseAdapter.fromJson(cached.jsonPayload) ?: return@withContext null
+            mapToWeatherInfo(
+                location = location,
+                dto = parsed,
+                lastUpdatedMillis = cached.fetchedAtMillis,
+                isFromCache = true,
+                dataSizeKb = cached.dataSizeKb
+            )
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     suspend fun getWeatherForLocation(
         location: LocationEntity,
         forceRefresh: Boolean = false

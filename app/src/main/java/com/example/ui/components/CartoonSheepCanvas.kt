@@ -24,10 +24,13 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 
 @Composable
 fun CartoonSheepCanvas(
     isNight: Boolean,
+    isScrolling: Boolean = false,
+    isLowEndDevice: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     // Background color animation transitioning after sunset to calming deep blue
@@ -47,9 +50,12 @@ fun CartoonSheepCanvas(
         label = "plainColor"
     )
 
-    // Gentle breathing animation for sheep wool and stars
+    // Dynamic animation throttling: On low-end devices or while the user is actively flinging/scrolling,
+    // pause continuous 60fps trigonometric math to ensure 100% of GPU/CPU rendering is dedicated to smooth list scrolling.
+    val shouldAnimate = !isLowEndDevice && !isScrolling
+
     val infiniteTransition = rememberInfiniteTransition(label = "sheepMotion")
-    val breathingOffset by infiniteTransition.animateFloat(
+    val liveBreathingOffset by infiniteTransition.animateFloat(
         initialValue = -3f,
         targetValue = 3f,
         animationSpec = infiniteRepeatable(
@@ -58,7 +64,7 @@ fun CartoonSheepCanvas(
         ),
         label = "breathing"
     )
-    val sleepZOffset by infiniteTransition.animateFloat(
+    val liveSleepZOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 18f,
         animationSpec = infiniteRepeatable(
@@ -68,7 +74,14 @@ fun CartoonSheepCanvas(
         label = "sleepZ"
     )
 
-    Box(modifier = modifier.fillMaxSize()) {
+    val breathingOffset = if (shouldAnimate) liveBreathingOffset else 0f
+    val sleepZOffset = if (shouldAnimate) liveSleepZOffset else 8f
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .graphicsLayer { clip = false }
+    ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
@@ -90,19 +103,19 @@ fun CartoonSheepCanvas(
             if (isNight) {
                 // Calming starry night sky
                 drawStars(w, h * 0.40f)
-                // Gentle crescent moon in the night sky - moved down below control buttons
-                drawNightMoon(w * 0.82f, h * 0.16f, 26f)
+                // Gentle crescent moon in the night sky - placed safely below top control buttons
+                drawNightMoon(w * 0.78f, h * 0.22f, 26f)
             } else {
-                // Daytime gentle golden sun glow - moved down below control buttons
+                // Daytime gentle golden sun glow - placed safely below top control buttons
                 drawCircle(
                     color = Color(0xFFFFD166).copy(alpha = 0.35f),
                     radius = 55f,
-                    center = Offset(w * 0.82f, h * 0.16f)
+                    center = Offset(w * 0.78f, h * 0.22f)
                 )
                 drawCircle(
                     color = Color(0xFFFFE066),
                     radius = 32f,
-                    center = Offset(w * 0.82f, h * 0.16f)
+                    center = Offset(w * 0.78f, h * 0.22f)
                 )
             }
 

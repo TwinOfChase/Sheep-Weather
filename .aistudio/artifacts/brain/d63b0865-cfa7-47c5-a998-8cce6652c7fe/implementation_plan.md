@@ -1,87 +1,111 @@
-# GitHub Release v2.6.5 & One-Touch Installable APK Packaging
+# Performance Optimization: Silky-Smooth Scrolling & Rapid App Loading
 
-Prepare a standalone, one-touch installable APK (`SheepWeather-v2.6.5.apk`) located directly in the project root directory, complete with comprehensive release documentation and a step-by-step GitHub release guide.
+Comprehensive optimization strategy to deliver fluid 60/120fps scrolling and instant loading across both high-performance and low-spec Android devices.
+
+---
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The following choices were confirmed during clarification:
-> - **APK Placement**: Copy the ready-to-install `SheepWeather-v2.6.5.apk` directly into the project root directory so you can download it with a single click from the AI Studio file explorer and install it on any Android device.
-> - **Release Notes Content**: Full v2.6.5 changelog paired with the complete, rich product description of Sheep Weather (mascot outfits, smart layer forecasts, Samsung-style widget, and weather features).
-> - **GitHub Release Publishing**: Complete step-by-step instructions for both the AI Studio Settings "Push to GitHub" workflow and the Git CLI workflow, including how to attach the APK asset directly to the GitHub release.
+> Based on your confirmed choices, the implementation will adhere to the following architecture:
+> - **Startup Strategy**: Retain the charming animated mascot splash screen while executing parallel background preloading of cached Room database records and network queries.
+> - **Scrolling & Animation Dynamic Scaling**: Enable continuous full-fidelity mascot animations on capable devices, with automatic animation throttling and frame-drop prevention during active scrolls and on memory-constrained devices.
+> - **Asset & Render Optimization**: Use hardware layer acceleration and memory-efficient bitmap caching to eliminate garbage collection (GC) stutter.
 
 ---
 
 ## 1. Overview & Core Concept
 
-- **What It Delivers**:
-  1. **Direct One-Touch Install APK**: A pre-built, signed APK named `SheepWeather-v2.6.5.apk` in the root workspace folder, ready for immediate download and installation across Android 10 through Android 16/17+.
-  2. **Full Product Description & Release Notes**: Comprehensive documentation (`RELEASE_v2.6.5.md`) detailing all features of Sheep Weather alongside the v2.6.5 changelog.
-  3. **GitHub Release Walkthrough**: Clear instructions on publishing the `v2.6.5` tag on GitHub and attaching the APK for public distribution.
-- **Target Audience**: End users installing Sheep Weather directly via sideloading or downloading the official GitHub release.
-- **Key Value**: Zero build friction—no need to compile or dig through deep Gradle build output folders; download and tap to install immediately.
+Sheep Weather features rich visual elements, including real-time vector canvas animations (breathing sheep mascot, drifting sleep particles, night stars), high-resolution photorealistic weather backdrops, and interactive forecast modules. 
+
+On diverse Android hardware—ranging from entry-level quad-core devices with 2–3 GB RAM up to modern 120Hz flagships—fluidity requires intentional resource allocation:
+1. **Zero-Wait Launch**: The app displays its animated splash screen immediately while simultaneously warming up Room SQLite caches and fetching updated forecast data on background IO coroutines.
+2. **Scroll-Priority Execution**: Whenever the user touches and scrolls the weather screen, device rendering cycles are prioritized for the scroll gesture. Continuous vector canvas math and breathing animations gracefully freeze or down-throttle on constrained hardware, eliminating frame drops.
+3. **Hardware Layer Decoupling**: Background vector canvases and photorealistic textures are isolated into dedicated hardware layers (`graphicsLayer`), preventing foreground card interactions from triggering expensive backdrop redraws.
 
 ---
 
-## 2. Release Notes & App Description Structure
-
-The release documentation will feature:
-
-### App Overview: Sheep Weather
-- **Playful Character Forecasts**: Dynamic cartoon sheep that automatically changes outfits based on temperature, rain, wind, and cloud conditions.
-- **Samsung One UI Style Weather & Clock Home Screen Widget**:
-  - Live clock and weather summary on the home screen.
-  - Interactive customization screen with live preview.
-  - Black or white background choices with dark mode auto-match.
-  - Transparency slider (0% to 100%) and quick presets.
-  - Direct tap opens the app to the active location.
-- **Smart Layer Recommendations**: Practical clothing and gear suggestions (jackets, umbrellas, sunglasses, layers) updated automatically.
-- **Location Drawer & Multi-City Support**: Search and save multiple favorite cities with offline caching via Room database.
-
-### What's New in Version 2.6.5
-- **New Feature**: Added Samsung-style Weather & Clock home screen widget with custom setup activity.
-- **UI Refinements**:
-  - Cleaned up main screen by moving last-updated timestamp and data-saver indicator into the detailed info sheet.
-  - Dynamic refresh button that turns vibrant green when weather data is older than 1 hour.
-  - Streamlined outfit forecast cards by removing the "Next few hours" label.
-- **Compatibility**: Verified support across Android 10 (API 29) through Android 16 and 17.
-- **Version Code**: Build updated to version `2.6.5` (Code 6).
-
----
-
-## 3. Packaging & Distribution Architecture
+## 2. Technical Architecture & Component Flow
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                   Google AI Studio Workspace             │
-│                                                          │
-│   app/build/outputs/apk/debug/app-debug.apk (22 MB)      │
-│                            │                             │
-│                            ▼                             │
-│   SheepWeather-v2.6.5.apk (Root Directory)               │
-│   ├── One-click download from AI Studio File Explorer    │
-│   ├── Sideload onto Android 10, 11, 12, 13, 14, 15, 16   │
-│   └── Upload as asset to GitHub Release v2.6.5           │
-│                                                          │
-│   RELEASE_v2.6.5.md (Root Directory)                     │
-│   ├── Full product overview for GitHub release body      │
-│   └── Copy-paste release notes & installation guide      │
-└──────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                        App Launch (MainActivity)                       │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+               Parallel Execution on Coroutines
+        ┌───────────────────────────┴────────────────────────────┐
+        ▼                                                        ▼
+┌────────────────────────────────┐              ┌────────────────────────────────┐
+│   Animated Splash Screen UI    │              │ Background Data Preloader      │
+│   • 1.4s minimum brand reveal  │              │ • Instant Room DB cache read   │
+│   • Smooth alpha/scale curves  │              │ • Parallel Open-Meteo refresh  │
+│   • Zero jank entry            │              │ • Widget preferences cache     │
+└───────────────┬────────────────┘              └───────────────┬────────────────┘
+                │                                               │
+                └───────────────────────┬───────────────────────┘
+                                        ▼
+             Seamless Transition When Both Are Satisfied
+                                        │
+                                        ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                     Main Weather Screen (LazyColumn)                   │
+│                                                                        │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │ Device Capability & Scroll State Monitor                         │  │
+│  │ • isLowRamDevice + CPU core check                                │  │
+│  │ • LazyListState.isScrollInProgress tracking                      │  │
+│  └──────────────────┬───────────────────────────────────────────────┘  │
+│                     │                                                  │
+│         Active Scroll or Low-RAM Device Detected                       │
+│         ┌───────────┴───────────┐                                      │
+│         ▼                       ▼                                      │
+│  ┌────────────────────┐   ┌─────────────────────────────────────────┐  │
+│  │ Backdrop Canvas    │   │ Forecast Cards (LazyColumn)             │  │
+│  │ • Throttle motion  │   │ • Stable identity keys                  │  │
+│  │ • Isolated layer   │   │ • Sub-millisecond layout passes         │  │
+│  │ • Zero frame drops │   │ • Smooth 60/120Hz native fling          │  │
+│  └────────────────────┘   └─────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 4. Implementation Steps (Upon Approval)
+## 3. Key Product Decisions & Trade-Offs
 
-1. **Package Installable APK**:
-   - Copy the compiled APK from `app/build/outputs/apk/debug/app-debug.apk` to `SheepWeather-v2.6.5.apk` in the root workspace directory.
-   - Verify file permissions and size integrity (~22 MB).
+### Decision 1: Parallel Background Preloading with Animated Splash
+- **Chosen Approach**: Launch the animated splash screen instantly without blocking on network I/O. Simultaneously trigger parallel reads of local SQLite Room data and initial telemetry. When the 1.4-second splash threshold completes, the main screen receives fully populated, hot state without a blank loading skeleton.
+- **Why**: Protects the app's friendly branding while ensuring zero perceptible load latency for the user upon screen reveal.
+- **Alternative Considered**: Blocking the splash until fresh network data arrives was rejected because network latency on 3G/4G would create frustrating startup delays.
 
-2. **Generate Full Release Documentation (`RELEASE_v2.6.5.md`)**:
-   - Create `RELEASE_v2.6.5.md` in the project root containing the complete Sheep Weather app description, feature highlights, v2.6.5 changelog, and installation troubleshooting.
+### Decision 2: Adaptive Mascot Animation Throttling
+- **Chosen Approach**: Monitor `isScrollInProgress` from Compose's `LazyListState` alongside low-RAM system flags (`ActivityManager.isLowRamDevice`). Capable devices render full animations; low-tier devices or devices under active touch fling automatically pause background canvas redraws until scrolling halts.
+- **Why**: Keeps scrolling at 60/120fps by ensuring CPU/GPU draw time is never contested between continuous canvas trigonometric calculations and list composition.
+- **Alternative Considered**: Completely removing mascot animations would harm the app's visual identity, while keeping 60fps animations unthrottled creates stutter on budget chipsets.
 
-3. **Provide GitHub Release Guide**:
-   - Provide exact steps to:
-     - Method A: Use AI Studio's built-in **Export / Push to GitHub** feature.
-     - Method B: Initialize Git remote and push from terminal.
-     - Method C: Create GitHub Release `v2.6.5` on github.com and attach `SheepWeather-v2.6.5.apk`.
+### Decision 3: Hardware-Layer Isolation (`graphicsLayer`)
+- **Chosen Approach**: Wrap `CartoonSheepCanvas` and `RealisticWeatherBackdrop` in hardware rendering layers (`Modifier.graphicsLayer { renderEffect = ...; clip = false }`).
+- **Why**: Tells the Android RenderThread to cache the background draw commands as a GPU texture. As the user scrolls the foreground forecast cards, the background is composited without re-invoking Canvas draw calls.
+
+### Decision 4: Stable Identity Keys for LazyList Items
+- **Chosen Approach**: Supply explicit, stable keys (`key = "weather_header"`, `key = "temp_hero"`, etc.) for every item in `LazyColumn`.
+- **Why**: Prevents Jetpack Compose from discarding and recreating composables during quick vertical flings, dramatically lowering allocation overhead.
+
+---
+
+## 4. Execution Roadmap
+
+1. **Step 1: Parallel Preload Pipeline**
+   - Enhance `WeatherViewModel` initialization so cached Room weather is dispatched to state synchronously or on immediate background IO.
+   - Synchronize `AnimatedSplashScreen` completion so that cached data displays without re-triggering skeleton animations.
+
+2. **Step 2: Scroll State & Device Tier Sensor**
+   - Provide a lightweight device capability detector checking `ActivityManager.isLowRamDevice` and core count.
+   - Connect `LazyListState.isScrollInProgress` to the background canvas so animation loops pause during active gestures on constrained hardware.
+
+3. **Step 3: Hardware Layer Acceleration & Graphic Caching**
+   - Apply `graphicsLayer` caching to `CartoonSheepCanvas` and `RealisticWeatherBackdrop`.
+   - Prevent background canvas recompositions from propagating to foreground cards.
+
+4. **Step 4: Stable Keys & Memory Footprint Audit**
+   - Add stable keys to all items in `MainWeatherScreen.kt`.
+   - Rebuild and verify zero build warnings or performance regressions.
