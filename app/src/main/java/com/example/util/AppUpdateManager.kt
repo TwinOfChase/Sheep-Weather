@@ -28,7 +28,7 @@ data class UpdateCheckResult(
 
 object AppUpdateManager {
     private const val DEFAULT_GITHUB_REPO = "TwinOfChase/Sheep-Weather"
-    private const val FALLBACK_DIRECT_APK_URL = "https://github.com/TwinOfChase/Sheep-Weather/releases/latest/download/SheepWeather-v2.7.0.apk"
+    private const val FALLBACK_DIRECT_APK_URL = "https://github.com/TwinOfChase/Sheep-Weather/releases/latest/download/SheepWeather-v2.7.1.apk"
     private const val FALLBACK_RELEASES_WEB_URL = "https://github.com/TwinOfChase/Sheep-Weather/releases/latest"
 
     private val httpClient = OkHttpClient.Builder()
@@ -40,7 +40,7 @@ object AppUpdateManager {
         return try {
             BuildConfig.VERSION_NAME
         } catch (_: Throwable) {
-            "2.7.0"
+            "2.7.1"
         }
     }
 
@@ -61,8 +61,9 @@ object AppUpdateManager {
 
             if (response.isSuccessful && !body.isNullOrBlank()) {
                 val json = JSONObject(body)
-                val tagName = json.optString("tag_name", "").removePrefix("v").trim()
-                val releaseName = json.optString("name", "Version $tagName")
+                val rawTagName = json.optString("tag_name", "").trim()
+                val cleanLatestVer = sanitizeVersion(rawTagName).ifBlank { currentVer }
+                val releaseName = json.optString("name", "Version $cleanLatestVer")
                 val releaseBody = json.optString("body", "Bug fixes and performance improvements.")
 
                 // Look for .apk asset
@@ -83,12 +84,11 @@ object AppUpdateManager {
                     apkUrl = json.optString("html_url", FALLBACK_RELEASES_WEB_URL)
                 }
 
-                val latestVer = if (tagName.isNotBlank()) tagName else currentVer
-                val isAvailable = compareVersions(latestVer, currentVer) > 0
+                val isAvailable = compareVersions(cleanLatestVer, currentVer) > 0
 
                 return@withContext UpdateCheckResult(
                     currentVersion = currentVer,
-                    latestVersion = latestVer,
+                    latestVersion = cleanLatestVer,
                     releaseTitle = releaseName,
                     releaseNotes = releaseBody.take(400),
                     downloadUrl = apkUrl,
@@ -165,9 +165,14 @@ object AppUpdateManager {
         }
     }
 
+    fun sanitizeVersion(raw: String): String {
+        val match = Regex("""\d+(\.\d+)+""").find(raw)
+        return match?.value ?: raw.replace(Regex("""[^0-9.]"""), "").trim()
+    }
+
     private fun compareVersions(v1: String, v2: String): Int {
-        val parts1 = v1.split(".").mapNotNull { it.trim().toIntOrNull() }
-        val parts2 = v2.split(".").mapNotNull { it.trim().toIntOrNull() }
+        val parts1 = sanitizeVersion(v1).split(".").mapNotNull { it.trim().toIntOrNull() }
+        val parts2 = sanitizeVersion(v2).split(".").mapNotNull { it.trim().toIntOrNull() }
         val length = maxOf(parts1.size, parts2.size)
         for (i in 0 until length) {
             val p1 = parts1.getOrElse(i) { 0 }

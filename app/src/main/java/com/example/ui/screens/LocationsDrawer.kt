@@ -109,7 +109,7 @@ fun LocationsDrawerContent(
                         color = textColor
                     )
                     Text(
-                        text = "Slide-out Menu • v2.7.0",
+                        text = "Slide-out Menu • v2.7.1",
                         fontSize = 11.sp,
                         color = subTextColor
                     )
@@ -128,147 +128,28 @@ fun LocationsDrawerContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-        // Data Saver & Last Updated Information card (Preserved in Drawer)
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = if (isNight) Color(0xFF1E293B) else Color(0xFFF1F5F9),
-            border = androidx.compose.foundation.BorderStroke(
-                1.dp,
-                if (isNight) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.08f)
-            ),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.DataSaverOn,
-                            contentDescription = "Data Saver",
-                            tint = if (isNight) Color(0xFF34D399) else Color(0xFF059669),
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Data Saver Active",
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (isNight) Color(0xFFA7F3D0) else Color(0xFF065F46)
-                        )
-                    }
-                    Text(
-                        text = if (isFromCache) "Cached" else "Online",
-                        fontSize = 10.5.sp,
-                        color = subTextColor
-                    )
-                }
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = lastUpdatedTime?.let { "Last updated: $it" } ?: "Zero background refresh • Saved locally",
-                    fontSize = 10.5.sp,
-                    color = subTextColor
-                )
-            }
-        }
+        // SAVED CITIES SECTION (Moved above settings)
+        Text(
+            text = "SAVED CITIES (${locations.size})",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = subTextColor,
+            letterSpacing = 0.8.sp,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+        )
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
-        // Quick Actions Group in Drawer:
-        // 1. Settings Button (Prominent inside Location pop out)
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = if (isNight) Color(0xFF1E293B) else Color(0xFFF1F5F9),
-            border = androidx.compose.foundation.BorderStroke(
-                1.dp,
-                if (isNight) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.08f)
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onOpenSettings() }
-                .testTag("drawer_settings_button")
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Settings",
-                    tint = if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7),
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text(
-                        text = "Settings & Preferences",
-                        fontSize = 13.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textColor
-                    )
-                    Text(
-                        text = "AI features, °C/°F, Theme & Art style",
-                        fontSize = 10.5.sp,
-                        color = subTextColor
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // 2. Check for Updates & Auto-Download APK Button
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = if (isNight) Color(0xFF0F2942) else Color(0xFFE0F2FE),
-            border = androidx.compose.foundation.BorderStroke(
-                1.dp,
-                if (isNight) Color(0xFF38BDF8).copy(alpha = 0.35f) else Color(0xFF0284C7).copy(alpha = 0.25f)
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onCheckForUpdates() }
-                .testTag("drawer_check_updates_button")
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.FileDownload,
-                    contentDescription = "Check for Updates",
-                    tint = if (isNight) Color(0xFF38BDF8) else Color(0xFF0284C7),
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text(
-                        text = "Check Updates & Download APK",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textColor
-                    )
-                    Text(
-                        text = "Auto-download latest release from GitHub",
-                        fontSize = 10.5.sp,
-                        color = subTextColor
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // 3. Use Current Location GPS Button
+        // Use Current Location (GPS) - Integrated inside Saved Cities area
         Surface(
             shape = RoundedCornerShape(12.dp),
             color = if (isNight) Color(0xFF1E3A8A).copy(alpha = 0.5f) else Color(0xFFEBF5FF),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                if (isNight) Color(0xFF60A5FA).copy(alpha = 0.35f) else Color(0xFF0284C7).copy(alpha = 0.25f)
+            ),
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onUseCurrentLocation() }
@@ -280,7 +161,7 @@ fun LocationsDrawerContent(
             ) {
                 Icon(
                     imageVector = Icons.Default.LocationOn,
-                    contentDescription = null,
+                    contentDescription = "Current Location",
                     tint = if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7),
                     modifier = Modifier.size(18.dp)
                 )
@@ -301,44 +182,7 @@ fun LocationsDrawerContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Data Saver status
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    color = if (isNight) Color(0xFF064E3B).copy(alpha = 0.35f) else Color(0xFFD1FAE5),
-                    shape = RoundedCornerShape(10.dp)
-                )
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.DataSaverOn,
-                contentDescription = "Data Saver",
-                tint = if (isNight) Color(0xFF34D399) else Color(0xFF059669),
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = "Zero background refresh. Cached in local DB.",
-                fontSize = 10.5.sp,
-                fontWeight = FontWeight.Medium,
-                color = if (isNight) Color(0xFFA7F3D0) else Color(0xFF065F46)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "SAVED CITIES (${locations.size})",
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = subTextColor,
-            letterSpacing = 0.8.sp,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-        )
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Locations List
         LazyColumn(
@@ -436,7 +280,7 @@ fun LocationsDrawerContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Add New Location Action Button
         Button(
@@ -456,6 +300,91 @@ fun LocationsDrawerContent(
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(text = "Add City by Name", fontWeight = FontWeight.Bold)
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // SETTINGS & UPDATES ACTIONS GROUP (Placed BELOW Saved Cities section)
+        // 1. Settings & Preferences Button
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = if (isNight) Color(0xFF1E293B) else Color(0xFFF1F5F9),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                if (isNight) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.08f)
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onOpenSettings() }
+                .testTag("drawer_settings_button")
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Settings",
+                    tint = if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = "Settings & Preferences",
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = textColor
+                    )
+                    Text(
+                        text = "AI features, Data Saver, °C/°F & Themes",
+                        fontSize = 10.5.sp,
+                        color = subTextColor
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // 2. Check For Updates Button (Shortened label)
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = if (isNight) Color(0xFF0F2942) else Color(0xFFE0F2FE),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                if (isNight) Color(0xFF38BDF8).copy(alpha = 0.35f) else Color(0xFF0284C7).copy(alpha = 0.25f)
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onCheckForUpdates() }
+                .testTag("drawer_check_updates_button")
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FileDownload,
+                    contentDescription = "Check For Updates",
+                    tint = if (isNight) Color(0xFF38BDF8) else Color(0xFF0284C7),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = "Check For Updates",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = textColor
+                    )
+                    Text(
+                        text = "Check latest release from GitHub",
+                        fontSize = 10.5.sp,
+                        color = subTextColor
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(8.dp))

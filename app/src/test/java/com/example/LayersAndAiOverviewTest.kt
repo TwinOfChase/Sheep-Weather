@@ -195,6 +195,12 @@ class LayersAndAiOverviewTest {
         assertTrue(isFresh)
 
         val version = com.example.util.AppUpdateManager.getCurrentVersion()
-        assertEquals("2.7.0", version)
+        assertEquals("2.7.1", version)
+
+        assertEquals("2.7.1", com.example.util.AppUpdateManager.sanitizeVersion("Version2.7.1"))
+        assertEquals("2.7.0", com.example.util.AppUpdateManager.sanitizeVersion("Version2.7.0"))
+        assertEquals("2.7.0", com.example.util.AppUpdateManager.sanitizeVersion("v2.7.0"))
+        assertEquals("2.7.0", com.example.util.AppUpdateManager.sanitizeVersion("Version 2.7.0"))
+        assertEquals("2.6.5", com.example.util.AppUpdateManager.sanitizeVersion("Sheep Weather Version-2.6.5-BETA"))
     }
 }

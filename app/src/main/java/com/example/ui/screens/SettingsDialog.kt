@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DataSaverOn
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Info
@@ -183,6 +184,47 @@ fun SettingsDialog(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
+
+                // Data Saver Active Banner (Exclusively in Settings & Preferences)
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = if (isNight) Color(0xFF064E3B).copy(alpha = 0.45f) else Color(0xFFD1FAE5),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        if (isNight) Color(0xFF34D399).copy(alpha = 0.40f) else Color(0xFF059669).copy(alpha = 0.30f)
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("settings_data_saver_banner")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DataSaverOn,
+                            contentDescription = "Data Saver Active",
+                            tint = if (isNight) Color(0xFF34D399) else Color(0xFF059669),
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "Data Saver Active",
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isNight) Color(0xFFA7F3D0) else Color(0xFF065F46)
+                            )
+                            Text(
+                                text = "Zero background telemetry • Only updates on user launch or refresh",
+                                fontSize = 11.sp,
+                                color = if (isNight) Color(0xFFA7F3D0).copy(alpha = 0.85f) else Color(0xFF065F46).copy(alpha = 0.90f)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Section 1: Gemini AI Features Toggle
                 Card(
@@ -1029,7 +1071,7 @@ fun SettingsDialog(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Sheep Weather v2.7.0",
+                                text = "Sheep Weather v2.7.1",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = textColor
