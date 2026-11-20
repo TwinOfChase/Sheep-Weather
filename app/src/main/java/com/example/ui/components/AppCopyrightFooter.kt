@@ -15,17 +15,18 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun AppCopyrightFooter(
     isNight: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    fontScale: Float = 1.0f
 ) {
     Text(
         text = "© Studio Of Chase 2026. All Rights Reserved.",
-        fontSize = 11.5.sp,
+        fontSize = (11.5f * fontScale).sp,
         fontWeight = FontWeight.Medium,
         color = if (isNight) Color(0xFF94A3B8).copy(alpha = 0.85f) else Color(0xFF64748B),
         textAlign = TextAlign.Center,
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp)
+            .padding(vertical = (12f * fontScale).dp)
             .testTag("copyright_footer")
     )
 }

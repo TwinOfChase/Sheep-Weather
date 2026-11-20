@@ -195,12 +195,39 @@ class LayersAndAiOverviewTest {
         assertTrue(isFresh)
 
         val version = com.example.util.AppUpdateManager.getCurrentVersion()
-        assertEquals("2.7.1", version)
+        assertEquals("2.7.2", version)
 
+        assertEquals("2.7.2", com.example.util.AppUpdateManager.sanitizeVersion("Version2.7.2"))
         assertEquals("2.7.1", com.example.util.AppUpdateManager.sanitizeVersion("Version2.7.1"))
         assertEquals("2.7.0", com.example.util.AppUpdateManager.sanitizeVersion("Version2.7.0"))
         assertEquals("2.7.0", com.example.util.AppUpdateManager.sanitizeVersion("v2.7.0"))
         assertEquals("2.7.0", com.example.util.AppUpdateManager.sanitizeVersion("Version 2.7.0"))
         assertEquals("2.6.5", com.example.util.AppUpdateManager.sanitizeVersion("Sheep Weather Version-2.6.5-BETA"))
+    }
+
+    @Test
+    fun testAdaptiveUiSpecPhoneVsTablet() {
+        val phoneSpec = com.example.ui.util.computeAdaptiveUiSpec(
+            androidx.compose.ui.unit.Dp(412f),
+            androidx.compose.ui.unit.Dp(915f)
+        )
+        assertFalse(phoneSpec.isTabletOrUnfolded)
+        assertEquals(1.0f, phoneSpec.scale, 0.001f)
+        assertEquals(1.0f, phoneSpec.fontScale, 0.001f)
+
+        val tabletPortraitSpec = com.example.ui.util.computeAdaptiveUiSpec(
+            androidx.compose.ui.unit.Dp(600f),
+            androidx.compose.ui.unit.Dp(1000f)
+        )
+        assertTrue(tabletPortraitSpec.isTabletOrUnfolded)
+        assertTrue(tabletPortraitSpec.scale > 1.1f)
+        assertTrue(tabletPortraitSpec.viewingSpaceHeight > phoneSpec.viewingSpaceHeight)
+
+        val tabletLandscapeSpec = com.example.ui.util.computeAdaptiveUiSpec(
+            androidx.compose.ui.unit.Dp(1000f),
+            androidx.compose.ui.unit.Dp(600f)
+        )
+        assertTrue(tabletLandscapeSpec.isTabletOrUnfolded)
+        assertTrue(tabletLandscapeSpec.scale >= tabletPortraitSpec.scale)
     }
 }

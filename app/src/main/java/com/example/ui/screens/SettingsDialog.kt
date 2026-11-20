@@ -1071,7 +1071,7 @@ fun SettingsDialog(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Sheep Weather v2.7.1",
+                                text = "Sheep Weather v2.7.2",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = textColor

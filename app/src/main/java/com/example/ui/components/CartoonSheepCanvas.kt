@@ -9,7 +9,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,6 +25,9 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
+import com.example.ui.util.computeAdaptiveUiSpec
 
 @Composable
 fun CartoonSheepCanvas(
@@ -77,17 +80,25 @@ fun CartoonSheepCanvas(
     val breathingOffset = if (shouldAnimate) liveBreathingOffset else 0f
     val sleepZOffset = if (shouldAnimate) liveSleepZOffset else 8f
 
-    Box(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .graphicsLayer { clip = false }
     ) {
+        val adaptive = computeAdaptiveUiSpec(maxWidth, maxHeight)
+        val density = LocalDensity.current
+
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
 
-            // 1. Sky & Ground Gradient: Transitions into a calming deep blue,
-            // and blurs into a clean plain color for maximum readability of text & numbers
+            val heroEndY = if (adaptive.isTabletOrUnfolded) {
+                maxOf(h * 0.62f, with(density) { 540.dp.toPx() })
+            } else {
+                h * 0.72f
+            }
+
+            // 1. Sky & Ground Gradient: Covers behind top buttons and blurs smoothly below temperature card
             val bgGradient = Brush.verticalGradient(
                 colors = listOf(
                     topColor,
@@ -96,34 +107,53 @@ fun CartoonSheepCanvas(
                     plainBlurColor
                 ),
                 startY = 0f,
-                endY = h * 0.72f
+                endY = heroEndY
             )
             drawRect(brush = bgGradient, size = size)
 
+            val sheepScale = if (adaptive.isTabletOrUnfolded) {
+                (density.density * 0.90f * adaptive.scale).coerceIn(1.55f, 2.85f)
+            } else {
+                (w / 380f).coerceIn(0.95f, 1.30f)
+            }
+            val celestialScale = if (adaptive.isTabletOrUnfolded) {
+                (sheepScale / 1.25f).coerceIn(1.25f, 2.25f)
+            } else {
+                1f
+            }
+
+            val celestialCenterY = if (adaptive.isTabletOrUnfolded) {
+                with(density) { (155.dp * adaptive.scale * 0.95f).toPx() }.coerceAtMost(h * 0.25f)
+            } else {
+                h * 0.22f
+            }
+
             if (isNight) {
                 // Calming starry night sky
-                drawStars(w, h * 0.40f)
+                drawStars(w, heroEndY * 0.56f, starScale = celestialScale)
                 // Gentle crescent moon in the night sky - placed safely below top control buttons
-                drawNightMoon(w * 0.78f, h * 0.22f, 26f)
+                drawNightMoon(w * 0.78f, celestialCenterY, 26f * celestialScale)
             } else {
                 // Daytime gentle golden sun glow - placed safely below top control buttons
                 drawCircle(
                     color = Color(0xFFFFD166).copy(alpha = 0.35f),
-                    radius = 55f,
-                    center = Offset(w * 0.78f, h * 0.22f)
+                    radius = 55f * celestialScale,
+                    center = Offset(w * 0.78f, celestialCenterY)
                 )
                 drawCircle(
                     color = Color(0xFFFFE066),
-                    radius = 32f,
-                    center = Offset(w * 0.78f, h * 0.22f)
+                    radius = 32f * celestialScale,
+                    center = Offset(w * 0.78f, celestialCenterY)
                 )
             }
 
             // 2. Cartoon Sheep in the upper backdrop
-            // Moved down comfortably so it is never covered by top control buttons
             val sheepCenterX = w * 0.5f
-            val sheepCenterY = h * 0.26f + breathingOffset
-            val sheepScale = (w / 380f).coerceIn(0.95f, 1.30f)
+            val sheepCenterY = if (adaptive.isTabletOrUnfolded) {
+                with(density) { (195.dp * adaptive.scale * 0.95f).toPx() }.coerceAtMost(heroEndY * 0.40f) + breathingOffset * celestialScale
+            } else {
+                h * 0.26f + breathingOffset
+            }
 
             drawCartoonSheep(
                 centerX = sheepCenterX,
@@ -134,6 +164,8 @@ fun CartoonSheepCanvas(
             )
 
             // 3. Smooth blur/veil transition to plain colour so foreground numbers & icons have maximum readability
+            val veilStart = if (adaptive.isTabletOrUnfolded) heroEndY * 0.50f else h * 0.40f
+            val veilEnd = if (adaptive.isTabletOrUnfolded) heroEndY * 0.94f else h * 0.55f
             val plainVeil = Brush.verticalGradient(
                 colors = listOf(
                     Color.Transparent,
@@ -141,13 +173,13 @@ fun CartoonSheepCanvas(
                     plainBlurColor.copy(alpha = 0.95f),
                     plainBlurColor
                 ),
-                startY = h * 0.40f,
-                endY = h * 0.55f
+                startY = veilStart,
+                endY = veilEnd
             )
             drawRect(
                 brush = plainVeil,
-                topLeft = Offset(0f, h * 0.40f),
-                size = Size(w, h * 0.60f)
+                topLeft = Offset(0f, veilStart),
+                size = Size(w, (h - veilStart).coerceAtLeast(0f))
             )
         }
     }
@@ -518,7 +550,7 @@ private fun DrawScope.drawNightMoon(cx: Float, cy: Float, r: Float) {
     drawPath(shadowPath, color = Color(0xFF0A1128), style = Fill)
 }
 
-private fun DrawScope.drawStars(width: Float, maxH: Float) {
+private fun DrawScope.drawStars(width: Float, maxH: Float, starScale: Float = 1f) {
     val starCoords = listOf(
         Offset(0.12f, 0.08f) to 2.2f,
         Offset(0.25f, 0.16f) to 1.6f,
@@ -533,7 +565,7 @@ private fun DrawScope.drawStars(width: Float, maxH: Float) {
     starCoords.forEach { (rel, r) ->
         drawCircle(
             color = Color(0xFFFFF9DB).copy(alpha = 0.85f),
-            radius = r,
+            radius = r * starScale,
             center = Offset(rel.x * width, rel.y * maxH)
         )
     }

@@ -3,29 +3,24 @@ package com.example.ui.components
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.data.model.MoonInfo
+import com.example.ui.util.computeAdaptiveUiSpec
 
 @Composable
 fun RealisticWeatherBackdrop(
@@ -33,38 +28,41 @@ fun RealisticWeatherBackdrop(
     moonInfo: MoonInfo,
     modifier: Modifier = Modifier
 ) {
-    Box(
+    val baseBgColor = if (isNight) Color(0xFF070B19) else Color(0xFF0F172A)
+
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
+            .background(baseBgColor)
             .graphicsLayer { clip = false }
     ) {
-        // Images in the top section, shifted down so they are not covered by the location selector or reload button
-        if (isNight) {
-            // "In The realistic version the sheep image should be replaced with a picture of the moon reflecting the moon phases."
-            Image(
-                painter = painterResource(id = R.drawable.realistic_moon),
-                contentDescription = "Realistic Moon - ${moonInfo.phaseName}",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 96.dp)
-                    .height(300.dp)
-            )
-        } else {
-            // "The second style should feature a real life photo of a sheep that again transitions into a glassy blurred backround again for maximum readibility."
-            Image(
-                painter = painterResource(id = R.drawable.realistic_sheep),
-                contentDescription = "Realistic Sheep Photo",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 96.dp)
-                    .height(300.dp)
-            )
-        }
+        val adaptive = computeAdaptiveUiSpec(maxWidth, maxHeight)
+        val density = LocalDensity.current
 
-        // Glassy blurred gradient veil transition for maximum readability
-        // Blurs and shades into the dark/light card background
+        // Edge-to-edge starting at 0.dp so the backdrop covers behind the menu/location & reload buttons
+        // and extends comfortably past the Temperature Hero Card on both phones and 10.4" tablets.
+        val heroHeight = if (adaptive.isTabletOrUnfolded) {
+            maxOf(540.dp, maxHeight * 0.62f)
+        } else {
+            maxOf(420.dp, maxHeight * 0.54f)
+        }
+        val heroHeightPx = with(density) { heroHeight.toPx() }.coerceAtLeast(1f)
+
+        val imageRes = if (isNight) R.drawable.realistic_moon else R.drawable.realistic_sheep
+        val imageDesc = if (isNight) "Realistic Moon - ${moonInfo.phaseName}" else "Realistic Sheep Photo"
+
+        Image(
+            painter = painterResource(id = imageRes),
+            contentDescription = imageDesc,
+            contentScale = ContentScale.Crop,
+            alignment = BiasAlignment(0f, -0.15f),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .height(heroHeight)
+        )
+
+        // Smooth container-relative gradient veil transition for maximum foreground card readability
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -72,21 +70,21 @@ fun RealisticWeatherBackdrop(
                     brush = Brush.verticalGradient(
                         colors = if (isNight) {
                             listOf(
-                                Color.Transparent,
-                                Color(0xFF070B19).copy(alpha = 0.40f),
+                                Color(0xFF070B19).copy(alpha = 0.14f),
+                                Color(0xFF070B19).copy(alpha = 0.42f),
                                 Color(0xFF070B19).copy(alpha = 0.88f),
                                 Color(0xFF070B19)
                             )
                         } else {
                             listOf(
-                                Color.Transparent,
-                                Color(0xFF1B2A47).copy(alpha = 0.35f),
+                                Color(0xFF0F172A).copy(alpha = 0.10f),
+                                Color(0xFF1B2A47).copy(alpha = 0.36f),
                                 Color(0xFF0F172A).copy(alpha = 0.85f),
                                 Color(0xFF0F172A)
                             )
                         },
-                        startY = 120f,
-                        endY = 780f
+                        startY = heroHeightPx * 0.14f,
+                        endY = heroHeightPx * 0.98f
                     )
                 )
         )

@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.LocationEntity
 import com.example.ui.components.AppCopyrightFooter
+import com.example.ui.util.AdaptiveUiSpec
 import com.example.util.AppUpdateManager
 
 @Composable
@@ -69,6 +70,7 @@ fun LocationsDrawerContent(
     onCheckForUpdates: () -> Unit = {},
     lastUpdatedTime: String? = null,
     isFromCache: Boolean = false,
+    adaptive: AdaptiveUiSpec = AdaptiveUiSpec.PhoneBaseline,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -79,13 +81,15 @@ fun LocationsDrawerContent(
     val textColor = if (isNight) Color(0xFFF8FAFC) else Color(0xFF0F172A)
     val subTextColor = if (isNight) Color(0xFF94A3B8) else Color(0xFF64748B)
 
+    val fs = adaptive.fontScale
+
     Column(
         modifier = modifier
             .fillMaxHeight()
-            .width(320.dp)
+            .width(adaptive.drawerWidth)
             .background(bgColor)
             .statusBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(horizontal = if (adaptive.isTabletOrUnfolded) 20.dp else 16.dp, vertical = 12.dp)
     ) {
         // Drawer Header with Close Button and Title
         Row(
@@ -98,19 +102,19 @@ fun LocationsDrawerContent(
                     imageVector = Icons.Default.Star,
                     contentDescription = null,
                     tint = Color(0xFFFFB74D),
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size((22f * fs).dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
                         text = "Locations",
-                        fontSize = 18.sp,
+                        fontSize = (18f * fs).sp,
                         fontWeight = FontWeight.Bold,
                         color = textColor
                     )
                     Text(
-                        text = "Slide-out Menu • v2.7.1",
-                        fontSize = 11.sp,
+                        text = "Slide-out Menu • v2.7.2",
+                        fontSize = (11f * fs).sp,
                         color = subTextColor
                     )
                 }
@@ -390,7 +394,7 @@ fun LocationsDrawerContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         // Mandatory Copyright at the bottom of the drawer
-        AppCopyrightFooter(isNight = isNight)
+        AppCopyrightFooter(isNight = isNight, fontScale = fs)
     }
 
     if (showAddDialog) {

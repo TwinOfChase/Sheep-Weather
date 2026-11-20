@@ -31,31 +31,34 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.LayersForecast
+import com.example.ui.util.AdaptiveUiSpec
 
 @Composable
 fun LayersForecastCard(
     layersForecast: LayersForecast,
     isNight: Boolean,
+    adaptive: AdaptiveUiSpec = AdaptiveUiSpec.PhoneBaseline,
     modifier: Modifier = Modifier
 ) {
     val cardBg = if (isNight) Color(0xFF16203A) else Color.White
     val cardBorder = if (isNight) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)
     val textColor = if (isNight) Color(0xFFF1F5F9) else Color(0xFF0F172A)
     val subTextColor = if (isNight) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val fs = adaptive.fontScale
 
     Surface(
         color = cardBg,
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(adaptive.cardCornerRadius),
         shadowElevation = 3.dp,
         modifier = modifier
             .fillMaxWidth()
-            .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
+            .border(1.dp, cardBorder, RoundedCornerShape(adaptive.cardCornerRadius))
             .testTag("layers_forecast_card")
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp)
+                .padding(adaptive.cardPadding)
         ) {
             // Header Row: Title
             Row(
@@ -64,25 +67,25 @@ fun LayersForecastCard(
             ) {
                 Text(
                     text = "👕",
-                    fontSize = 20.sp,
+                    fontSize = (20f * fs).sp,
                     modifier = Modifier.padding(end = 6.dp)
                 )
                 Text(
                     text = "Layers & Outfit Forecast",
-                    fontSize = 17.sp,
+                    fontSize = (17f * fs).sp,
                     fontWeight = FontWeight.Bold,
                     color = textColor
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(if (adaptive.isTabletOrUnfolded) 16.dp else 14.dp))
 
             // Primary Dual Hero Blocks:
             // 1) Amount of Layers badge (T-shirt emoji with number)
             // 2) Umbrella Forecast (Umbrella status, including "Too windy for umbrella")
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(if (adaptive.isTabletOrUnfolded) 16.dp else 12.dp)
             ) {
                 // Layer Hero Box
                 Surface(
@@ -97,12 +100,12 @@ fun LayersForecastCard(
                         .testTag("layers_badge_container")
                 ) {
                     Column(
-                        modifier = Modifier.padding(14.dp),
+                        modifier = Modifier.padding(if (adaptive.isTabletOrUnfolded) 18.dp else 14.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = "AMOUNT OF LAYERS",
-                            fontSize = 10.5.sp,
+                            fontSize = (10.5f * fs).sp,
                             fontWeight = FontWeight.Bold,
                             color = if (isNight) Color(0xFF93C5FD) else Color(0xFF1D4ED8),
                             letterSpacing = 0.5.sp
@@ -115,20 +118,20 @@ fun LayersForecastCard(
                         ) {
                             Text(
                                 text = "👕",
-                                fontSize = 34.sp
+                                fontSize = (34f * fs).sp
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "${layersForecast.layerCount}",
-                                fontSize = 38.sp,
+                                fontSize = (38f * fs).sp,
                                 fontWeight = FontWeight.Black,
                                 color = textColor,
                                 letterSpacing = (-1).sp
                             )
                         }
                         Text(
-                            text = if (layersForecast.layerCount == 1) "1 Layer" else "${layersForecast.layerCount} Layers",
-                            fontSize = 12.5.sp,
+                            text = if (layersForecast.layerCount == 1) "Layer" else "Layers",
+                            fontSize = (12.5f * fs).sp,
                             fontWeight = FontWeight.Bold,
                             color = textColor
                         )
@@ -167,12 +170,12 @@ fun LayersForecastCard(
                         .testTag("umbrella_badge_container")
                 ) {
                     Column(
-                        modifier = Modifier.padding(14.dp),
+                        modifier = Modifier.padding(if (adaptive.isTabletOrUnfolded) 18.dp else 14.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = umbrellaTagText,
-                            fontSize = 10.5.sp,
+                            fontSize = (10.5f * fs).sp,
                             fontWeight = FontWeight.Bold,
                             color = umbrellaTagColor,
                             letterSpacing = 0.5.sp
@@ -185,13 +188,13 @@ fun LayersForecastCard(
                         ) {
                             Text(
                                 text = layersForecast.umbrellaEmoji,
-                                fontSize = 34.sp
+                                fontSize = (34f * fs).sp
                             )
                         }
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = layersForecast.umbrellaStatus,
-                            fontSize = 12.5.sp,
+                            fontSize = (12.5f * fs).sp,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center,
                             color = when {
@@ -204,7 +207,7 @@ fun LayersForecastCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(if (adaptive.isTabletOrUnfolded) 14.dp else 12.dp))
 
             // Informational Summary Banner
             Surface(
@@ -216,17 +219,17 @@ fun LayersForecastCard(
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
+                Column(modifier = Modifier.padding(if (adaptive.isTabletOrUnfolded) 16.dp else 12.dp)) {
                     Text(
                         text = layersForecast.layerDescription,
-                        fontSize = 13.sp,
+                        fontSize = (13f * fs).sp,
                         fontWeight = FontWeight.Medium,
                         color = textColor
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = layersForecast.umbrellaNote,
-                        fontSize = 12.sp,
+                        fontSize = (12f * fs).sp,
                         color = subTextColor
                     )
 
@@ -237,12 +240,12 @@ fun LayersForecastCard(
                                 imageVector = Icons.Default.Air,
                                 contentDescription = "Wind Alert",
                                 tint = if (isNight) Color(0xFFFBBF24) else Color(0xFFD97706),
-                                modifier = Modifier.size(14.dp)
+                                modifier = Modifier.size((14f * fs).dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Wind speeds reaching ${layersForecast.maxWindSpeed.toInt()} km/h over the next few hours",
-                                fontSize = 11.5.sp,
+                                fontSize = (11.5f * fs).sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (isNight) Color(0xFFFDE68A) else Color(0xFFB45309)
                             )

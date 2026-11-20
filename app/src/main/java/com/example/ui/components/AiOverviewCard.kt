@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.remote.AiWeatherOverview
+import com.example.ui.util.AdaptiveUiSpec
 
 /**
  * Authentic 4-pointed Google Gemini Sparkle Logo with gradient fill.
@@ -103,12 +104,14 @@ fun AiOverviewCard(
     isLoading: Boolean,
     isNight: Boolean,
     onRefreshAi: () -> Unit,
+    adaptive: AdaptiveUiSpec = AdaptiveUiSpec.PhoneBaseline,
     modifier: Modifier = Modifier
 ) {
     val cardBg = if (isNight) Color(0xFF16203A) else Color.White
     val cardBorder = if (isNight) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)
     val textColor = if (isNight) Color(0xFFF1F5F9) else Color(0xFF0F172A)
     val subTextColor = if (isNight) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val fs = adaptive.fontScale
 
     val geminiGradient = Brush.horizontalGradient(
         colors = listOf(
@@ -131,17 +134,17 @@ fun AiOverviewCard(
 
     Surface(
         color = cardBg,
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(adaptive.cardCornerRadius),
         shadowElevation = 3.dp,
         modifier = modifier
             .fillMaxWidth()
-            .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
+            .border(1.dp, cardBorder, RoundedCornerShape(adaptive.cardCornerRadius))
             .testTag("ai_overview_card")
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp)
+                .padding(adaptive.cardPadding)
         ) {
             // Header Row: Gemini Logo + "AI Overview" + Gemini badge + Refresh button
             Row(
@@ -153,11 +156,11 @@ fun AiOverviewCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f, fill = false)
                 ) {
-                    GeminiSparkleLogo(size = 26.dp)
+                    GeminiSparkleLogo(size = (26f * fs).dp)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "AI Overview",
-                        fontSize = 18.sp,
+                        fontSize = (18f * fs).sp,
                         fontWeight = FontWeight.Bold,
                         color = textColor
                     )
@@ -169,11 +172,11 @@ fun AiOverviewCard(
                                 brush = geminiGradient,
                                 shape = RoundedCornerShape(12.dp)
                             )
-                            .padding(horizontal = 7.dp, vertical = 2.5.dp)
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
                         Text(
                             text = "Gemini",
-                            fontSize = 11.sp,
+                            fontSize = (11f * fs).sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color.White,
                             letterSpacing = 0.4.sp
@@ -185,12 +188,12 @@ fun AiOverviewCard(
                     onClick = onRefreshAi,
                     enabled = !isLoading,
                     modifier = Modifier
-                        .size(36.dp)
+                        .size((36f * fs).dp)
                         .testTag("refresh_ai_overview_button")
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size((18f * fs).dp),
                             strokeWidth = 2.dp,
                             color = Color(0xFF9060EB)
                         )
@@ -199,13 +202,13 @@ fun AiOverviewCard(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Refresh AI Overview",
                             tint = if (isNight) Color(0xFFA5B4FC) else Color(0xFF6366F1),
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size((20f * fs).dp)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(if (adaptive.isTabletOrUnfolded) 16.dp else 14.dp))
 
             if (isLoading && overview == null) {
                 // Skeleton loading state
@@ -221,11 +224,11 @@ fun AiOverviewCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        GeminiSparkleLogo(size = 20.dp)
+                        GeminiSparkleLogo(size = (20f * fs).dp)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Gemini is analyzing the forecast...",
-                            fontSize = 13.5.sp,
+                            fontSize = (13.5f * fs).sp,
                             fontWeight = FontWeight.Medium,
                             color = if (isNight) Color(0xFFA5B4FC) else Color(0xFF4F46E5)
                         )
@@ -240,7 +243,8 @@ fun AiOverviewCard(
                     content = overview.todaySummary,
                     isNight = isNight,
                     textColor = textColor,
-                    subTextColor = subTextColor
+                    subTextColor = subTextColor,
+                    fontScale = fs
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -253,7 +257,8 @@ fun AiOverviewCard(
                     content = overview.upcomingDaysSummary,
                     isNight = isNight,
                     textColor = textColor,
-                    subTextColor = subTextColor
+                    subTextColor = subTextColor,
+                    fontScale = fs
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -266,7 +271,8 @@ fun AiOverviewCard(
                     content = overview.dressingAndActivityTip,
                     isNight = isNight,
                     textColor = textColor,
-                    subTextColor = subTextColor
+                    subTextColor = subTextColor,
+                    fontScale = fs
                 )
             }
         }
@@ -282,6 +288,7 @@ private fun OverviewSectionBlock(
     isNight: Boolean,
     textColor: Color,
     subTextColor: Color,
+    fontScale: Float = 1.0f,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -294,12 +301,12 @@ private fun OverviewSectionBlock(
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(12.dp)
+            modifier = Modifier.padding((12f * fontScale).dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(24.dp)
+                        .size((24f * fontScale).dp)
                         .clip(CircleShape)
                         .background(iconTint.copy(alpha = if (isNight) 0.25f else 0.15f)),
                     contentAlignment = Alignment.Center
@@ -308,13 +315,13 @@ private fun OverviewSectionBlock(
                         imageVector = icon,
                         contentDescription = title,
                         tint = iconTint,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size((14f * fontScale).dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = title,
-                    fontSize = 13.sp,
+                    fontSize = (13f * fontScale).sp,
                     fontWeight = FontWeight.Bold,
                     color = textColor
                 )
@@ -322,9 +329,9 @@ private fun OverviewSectionBlock(
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = content,
-                fontSize = 13.5.sp,
+                fontSize = (13.5f * fontScale).sp,
                 fontWeight = FontWeight.Normal,
-                lineHeight = 19.sp,
+                lineHeight = (19f * fontScale).sp,
                 color = if (isNight) Color(0xFFCBD5E1) else Color(0xFF334155)
             )
         }

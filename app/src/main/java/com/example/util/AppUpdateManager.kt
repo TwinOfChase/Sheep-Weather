@@ -28,7 +28,7 @@ data class UpdateCheckResult(
 
 object AppUpdateManager {
     private const val DEFAULT_GITHUB_REPO = "TwinOfChase/Sheep-Weather"
-    private const val FALLBACK_DIRECT_APK_URL = "https://github.com/TwinOfChase/Sheep-Weather/releases/latest/download/SheepWeather-v2.7.1.apk"
+    private const val FALLBACK_DIRECT_APK_URL = "https://github.com/TwinOfChase/Sheep-Weather/releases/latest/download/SheepWeather-v2.7.2.apk"
     private const val FALLBACK_RELEASES_WEB_URL = "https://github.com/TwinOfChase/Sheep-Weather/releases/latest"
 
     private val httpClient = OkHttpClient.Builder()
@@ -40,7 +40,7 @@ object AppUpdateManager {
         return try {
             BuildConfig.VERSION_NAME
         } catch (_: Throwable) {
-            "2.7.1"
+            "2.7.2"
         }
     }
 

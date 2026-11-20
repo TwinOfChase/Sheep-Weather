@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -80,6 +81,8 @@ import com.example.ui.components.CartoonSheepCanvas
 import com.example.ui.components.ConditionIcon
 import com.example.ui.components.LayersForecastCard
 import com.example.ui.components.RealisticWeatherBackdrop
+import com.example.ui.util.AdaptiveUiSpec
+import com.example.ui.util.computeAdaptiveUiSpec
 import com.example.util.AppUpdateManager
 import com.example.util.TemperatureFormatter
 import com.example.util.TemperatureUnit
@@ -131,79 +134,87 @@ fun MainWeatherScreen(
     val cardBg = if (isNight) Color(0xFF14203B).copy(alpha = 0.88f) else Color.White.copy(alpha = 0.92f)
     val cardBorder = if (isNight) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        gesturesEnabled = true,
-        drawerContent = {
-            ModalDrawerSheet(
-                drawerContainerColor = if (isNight) Color(0xFF0F172A) else Color(0xFFF8FAFC),
-                drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
-                modifier = Modifier.width(320.dp)
-            ) {
-                LocationsDrawerContent(
-                    locations = uiState.locations,
-                    selectedLocationId = uiState.selectedLocation?.id ?: 0L,
-                    isNight = isNight,
-                    lastUpdatedTime = weather?.current?.time,
-                    isFromCache = weather?.isFromCache ?: false,
-                    onSelectLocation = { id ->
-                        onSelectLocation(id)
-                        coroutineScope.launch { drawerState.close() }
-                    },
-                    onAddLocationByName = onAddLocationByName,
-                    onDeleteLocation = onDeleteLocation,
-                    onClose = {
-                        coroutineScope.launch { drawerState.close() }
-                    },
-                    onOpenSettings = {
-                        coroutineScope.launch { drawerState.close() }
-                        onOpenSettings()
-                    },
-                    onUseCurrentLocation = {
-                        coroutineScope.launch { drawerState.close() }
-                        onFetchCurrentLocation()
-                    },
-                    onCheckForUpdates = {
-                        coroutineScope.launch { drawerState.close() }
-                        onCheckForUpdates()
-                    }
-                )
-            }
-        }
-    ) {
-        Box(modifier = modifier.fillMaxSize()) {
-            // 1. Two Designs Background: Cartoon Sheep vs Realistic Sheep
-            when (style) {
-                AppStyle.CARTOON_SHEEP -> {
-                    CartoonSheepCanvas(
-                        isNight = isNight,
-                        isScrolling = isScrolling,
-                        isLowEndDevice = isLowEnd,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer { clip = false }
-                    )
-                }
-                AppStyle.REALISTIC_SHEEP -> {
-                    RealisticWeatherBackdrop(
-                        isNight = isNight,
-                        moonInfo = uiState.moonInfo,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer { clip = false }
-                    )
-                }
-            }
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val adaptive = computeAdaptiveUiSpec(maxWidth, maxHeight)
+        val fs = adaptive.fontScale
 
-            // 2. Foreground scrollable content with maximum readability
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            gesturesEnabled = true,
+            drawerContent = {
+                ModalDrawerSheet(
+                    drawerContainerColor = if (isNight) Color(0xFF0F172A) else Color(0xFFF8FAFC),
+                    drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
+                    modifier = Modifier.width(adaptive.drawerWidth)
+                ) {
+                    LocationsDrawerContent(
+                        locations = uiState.locations,
+                        selectedLocationId = uiState.selectedLocation?.id ?: 0L,
+                        isNight = isNight,
+                        lastUpdatedTime = weather?.current?.time,
+                        isFromCache = weather?.isFromCache ?: false,
+                        adaptive = adaptive,
+                        onSelectLocation = { id ->
+                            onSelectLocation(id)
+                            coroutineScope.launch { drawerState.close() }
+                        },
+                        onAddLocationByName = onAddLocationByName,
+                        onDeleteLocation = onDeleteLocation,
+                        onClose = {
+                            coroutineScope.launch { drawerState.close() }
+                        },
+                        onOpenSettings = {
+                            coroutineScope.launch { drawerState.close() }
+                            onOpenSettings()
+                        },
+                        onUseCurrentLocation = {
+                            coroutineScope.launch { drawerState.close() }
+                            onFetchCurrentLocation()
+                        },
+                        onCheckForUpdates = {
+                            coroutineScope.launch { drawerState.close() }
+                            onCheckForUpdates()
+                        }
+                    )
+                }
+            }
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                // 1. Two Designs Background: Cartoon Sheep vs Realistic Sheep
+                when (style) {
+                    AppStyle.CARTOON_SHEEP -> {
+                        CartoonSheepCanvas(
+                            isNight = isNight,
+                            isScrolling = isScrolling,
+                            isLowEndDevice = isLowEnd,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer { clip = false }
+                        )
+                    }
+                    AppStyle.REALISTIC_SHEEP -> {
+                        RealisticWeatherBackdrop(
+                            isNight = isNight,
+                            moonInfo = uiState.moonInfo,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer { clip = false }
+                        )
+                    }
+                }
+
+                // 2. Foreground scrollable content with maximum readability
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .statusBarsPadding(),
+                    contentPadding = PaddingValues(
+                        horizontal = adaptive.horizontalPadding,
+                        vertical = if (adaptive.isTabletOrUnfolded) 16.dp else 10.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(adaptive.verticalSpacing)
+                ) {
                 // Top Navigation & Control Header (Cleaned up: Only Location Pill and Refresh Button)
                 item(key = "top_control_header") {
                     Row(
@@ -224,19 +235,22 @@ fun MainWeatherScreen(
                                 .testTag("location_picker_pill")
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                modifier = Modifier.padding(
+                                    horizontal = (14f * fs).dp,
+                                    vertical = (8f * fs).dp
+                                ),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.LocationOn,
                                     contentDescription = "Location",
                                     tint = if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7),
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size((18f * fs).dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = weather?.locationName ?: "Select City",
-                                    fontSize = 15.sp,
+                                    fontSize = (15f * fs).sp,
                                     fontWeight = FontWeight.Bold,
                                     color = textColor
                                 )
@@ -245,7 +259,7 @@ fun MainWeatherScreen(
                                     imageVector = Icons.Default.ExpandMore,
                                     contentDescription = "Open",
                                     tint = subTextColor,
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size((18f * fs).dp)
                                 )
                             }
                         }
@@ -266,10 +280,10 @@ fun MainWeatherScreen(
                                 .border(1.5.dp, refreshBorder, CircleShape)
                                 .testTag("refresh_button")
                         ) {
-                            Box(modifier = Modifier.padding(8.dp)) {
+                            Box(modifier = Modifier.padding((8f * fs).dp)) {
                                 if (uiState.isLoading) {
                                     CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
+                                        modifier = Modifier.size((20f * fs).dp),
                                         strokeWidth = 2.dp,
                                         color = if (isMoreThanOneHourSinceRefresh) Color(0xFF22C55E) else if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7)
                                     )
@@ -278,7 +292,7 @@ fun MainWeatherScreen(
                                         imageVector = Icons.Default.Refresh,
                                         contentDescription = "Refresh",
                                         tint = refreshTint,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size((20f * fs).dp)
                                     )
                                 }
                             }
@@ -291,7 +305,7 @@ fun MainWeatherScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(170.dp)
+                            .height(adaptive.viewingSpaceHeight)
                             .testTag("background_viewing_space")
                     ) {
                         if (isNight) {
@@ -310,9 +324,9 @@ fun MainWeatherScreen(
                                 Text(
                                     text = "🌙 ${uiState.moonInfo.phaseName} • ${uiState.moonInfo.illuminationPercent}%",
                                     color = Color(0xFFE2E8F0),
-                                    fontSize = 12.sp,
+                                    fontSize = (12f * fs).sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+                                    modifier = Modifier.padding(horizontal = (12f * fs).dp, vertical = (5f * fs).dp)
                                 )
                             }
                         }
@@ -324,17 +338,17 @@ fun MainWeatherScreen(
                     item(key = "temperature_hero_card") {
                         Surface(
                             color = cardBg,
-                            shape = RoundedCornerShape(24.dp),
+                            shape = RoundedCornerShape(adaptive.cardCornerRadius),
                             shadowElevation = 3.dp,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
+                                .border(1.dp, cardBorder, RoundedCornerShape(adaptive.cardCornerRadius))
                                 .testTag("temperature_hero_card")
                         ) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(18.dp)
+                                    .padding(adaptive.cardPadding)
                             ) {
                                 // Title row
                                 Row(
@@ -347,12 +361,12 @@ fun MainWeatherScreen(
                                             imageVector = Icons.Default.Thermostat,
                                             contentDescription = "Temperature",
                                             tint = if (isNight) Color(0xFFFF9F1C) else Color(0xFFEA580C),
-                                            modifier = Modifier.size(22.dp)
+                                            modifier = Modifier.size((22f * fs).dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
                                             text = "Temperature",
-                                            fontSize = 18.sp,
+                                            fontSize = (18f * fs).sp,
                                             fontWeight = FontWeight.Bold,
                                             color = textColor
                                         )
@@ -362,19 +376,19 @@ fun MainWeatherScreen(
                                         ConditionIcon(
                                             weatherCode = weather.current.weatherCode,
                                             isDay = !isNight,
-                                            size = 36.dp
+                                            size = (36f * fs).dp
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
                                             text = weather.current.conditionDescription,
-                                            fontSize = 13.5.sp,
+                                            fontSize = (13.5f * fs).sp,
                                             fontWeight = FontWeight.SemiBold,
                                             color = subTextColor
                                         )
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(14.dp))
+                                Spacer(modifier = Modifier.height(if (adaptive.isTabletOrUnfolded) 16.dp else 14.dp))
 
                                 // Combined Temperature Box displaying both Actual and Real Feel side-by-side
                                 Row(
@@ -384,7 +398,7 @@ fun MainWeatherScreen(
                                             color = if (isNight) Color(0xFF1E2D52) else Color(0xFFF1F5F9),
                                             shape = RoundedCornerShape(18.dp)
                                         )
-                                        .padding(vertical = 12.dp, horizontal = 16.dp),
+                                        .padding(vertical = (12f * fs).dp, horizontal = (16f * fs).dp),
                                     horizontalArrangement = Arrangement.SpaceAround,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -392,7 +406,7 @@ fun MainWeatherScreen(
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Text(
                                             text = "ACTUAL",
-                                            fontSize = 11.sp,
+                                            fontSize = (11f * fs).sp,
                                             fontWeight = FontWeight.Bold,
                                             color = subTextColor,
                                             letterSpacing = 0.6.sp
@@ -400,7 +414,7 @@ fun MainWeatherScreen(
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
                                             text = TemperatureFormatter.format(weather.current.temperature, tempUnit),
-                                            fontSize = 36.sp,
+                                            fontSize = (36f * fs).sp,
                                             fontWeight = FontWeight.Black,
                                             color = textColor,
                                             letterSpacing = (-1.2).sp
@@ -410,7 +424,7 @@ fun MainWeatherScreen(
                                     // Subtle divider
                                     Box(
                                         modifier = Modifier
-                                            .height(38.dp)
+                                            .height((38f * fs).dp)
                                             .width(1.dp)
                                             .background(if (isNight) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.1f))
                                     )
@@ -419,7 +433,7 @@ fun MainWeatherScreen(
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Text(
                                             text = "REAL FEEL",
-                                            fontSize = 11.sp,
+                                            fontSize = (11f * fs).sp,
                                             fontWeight = FontWeight.Bold,
                                             color = if (isNight) Color(0xFFFFB74D) else Color(0xFFD97706),
                                             letterSpacing = 0.6.sp
@@ -427,7 +441,7 @@ fun MainWeatherScreen(
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
                                             text = TemperatureFormatter.format(weather.current.realFeel, tempUnit),
-                                            fontSize = 36.sp,
+                                            fontSize = (36f * fs).sp,
                                             fontWeight = FontWeight.Black,
                                             color = if (isNight) Color(0xFFFFB74D) else Color(0xFFD97706),
                                             letterSpacing = (-1.2).sp
@@ -435,7 +449,7 @@ fun MainWeatherScreen(
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(14.dp))
+                                Spacer(modifier = Modifier.height(if (adaptive.isTabletOrUnfolded) 16.dp else 14.dp))
 
                                 // Grid of secondary metrics: Wind, Humidity, UV, Rain
                                 Row(
@@ -446,26 +460,30 @@ fun MainWeatherScreen(
                                         icon = Icons.Default.Air,
                                         label = "Wind",
                                         value = "${weather.current.windSpeed.toInt()} km/h",
-                                        isNight = isNight
+                                        isNight = isNight,
+                                        fontScale = fs
                                     )
                                     QuickMetricItem(
                                         icon = Icons.Default.WaterDrop,
                                         label = "Humidity",
                                         value = "${weather.current.humidity}%",
-                                        isNight = isNight
+                                        isNight = isNight,
+                                        fontScale = fs
                                     )
                                     QuickMetricItem(
                                         icon = Icons.Default.WbSunny,
                                         label = "UV Index",
                                         value = "%.1f".format(weather.current.uvIndex),
-                                        isNight = isNight
+                                        isNight = isNight,
+                                        fontScale = fs
                                     )
                                     // Rain metric with probability % and millimeters
                                     QuickMetricItem(
                                         icon = Icons.Default.Grain,
                                         label = "Rain",
                                         value = "${weather.hourly.firstOrNull()?.precipitationProbability ?: 10}% • ${"%.1f".format(weather.hourly.firstOrNull()?.precipitationMm ?: weather.current.precipitationMm)} mm",
-                                        isNight = isNight
+                                        isNight = isNight,
+                                        fontScale = fs
                                     )
                                 }
                             }
@@ -478,17 +496,17 @@ fun MainWeatherScreen(
                     item(key = "sunrise_sunset_card") {
                         Surface(
                             color = cardBg,
-                            shape = RoundedCornerShape(24.dp),
+                            shape = RoundedCornerShape(adaptive.cardCornerRadius),
                             shadowElevation = 3.dp,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
+                                .border(1.dp, cardBorder, RoundedCornerShape(adaptive.cardCornerRadius))
                                 .testTag("sunrise_sunset_card")
                         ) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(18.dp)
+                                    .padding(adaptive.cardPadding)
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -500,19 +518,19 @@ fun MainWeatherScreen(
                                             imageVector = Icons.Default.WbSunny,
                                             contentDescription = "Sun Cycle",
                                             tint = Color(0xFFF59E0B),
-                                            modifier = Modifier.size(20.dp)
+                                            modifier = Modifier.size((20f * fs).dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
                                             text = "Sunrise & Sunset",
-                                            fontSize = 17.sp,
+                                            fontSize = (17f * fs).sp,
                                             fontWeight = FontWeight.Bold,
                                             color = textColor
                                         )
                                     }
                                     Text(
                                         text = "Local Solar Times",
-                                        fontSize = 11.5.sp,
+                                        fontSize = (11.5f * fs).sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = subTextColor
                                     )
@@ -522,7 +540,7 @@ fun MainWeatherScreen(
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(if (adaptive.isTabletOrUnfolded) 16.dp else 12.dp)
                                 ) {
                                     // Sunrise Box
                                     Surface(
@@ -535,12 +553,12 @@ fun MainWeatherScreen(
                                         modifier = Modifier.weight(1f)
                                     ) {
                                         Row(
-                                            modifier = Modifier.padding(14.dp),
+                                            modifier = Modifier.padding((14f * fs).dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Box(
                                                 modifier = Modifier
-                                                    .size(38.dp)
+                                                    .size((38f * fs).dp)
                                                     .clip(CircleShape)
                                                     .background(Color(0xFFFEF3C7)),
                                                 contentAlignment = Alignment.Center
@@ -549,20 +567,20 @@ fun MainWeatherScreen(
                                                     imageVector = Icons.Default.WbSunny,
                                                     contentDescription = "Sunrise",
                                                     tint = Color(0xFFD97706),
-                                                    modifier = Modifier.size(22.dp)
+                                                    modifier = Modifier.size((22f * fs).dp)
                                                 )
                                             }
                                             Spacer(modifier = Modifier.width(10.dp))
                                             Column {
                                                 Text(
                                                     text = "Sunrise",
-                                                    fontSize = 11.sp,
+                                                    fontSize = (11f * fs).sp,
                                                     fontWeight = FontWeight.Medium,
                                                     color = subTextColor
                                                 )
                                                 Text(
                                                     text = weather.current.sunrise,
-                                                    fontSize = 15.sp,
+                                                    fontSize = (15f * fs).sp,
                                                     fontWeight = FontWeight.Bold,
                                                     color = textColor
                                                 )
@@ -581,12 +599,12 @@ fun MainWeatherScreen(
                                         modifier = Modifier.weight(1f)
                                     ) {
                                         Row(
-                                            modifier = Modifier.padding(14.dp),
+                                            modifier = Modifier.padding((14f * fs).dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Box(
                                                 modifier = Modifier
-                                                    .size(38.dp)
+                                                    .size((38f * fs).dp)
                                                     .clip(CircleShape)
                                                     .background(Color(0xFFFFEDD5)),
                                                 contentAlignment = Alignment.Center
@@ -595,20 +613,20 @@ fun MainWeatherScreen(
                                                     imageVector = Icons.Default.NightsStay,
                                                     contentDescription = "Sunset",
                                                     tint = Color(0xFFEA580C),
-                                                    modifier = Modifier.size(22.dp)
+                                                    modifier = Modifier.size((22f * fs).dp)
                                                 )
                                             }
                                             Spacer(modifier = Modifier.width(10.dp))
                                             Column {
                                                 Text(
                                                     text = "Sunset",
-                                                    fontSize = 11.sp,
+                                                    fontSize = (11f * fs).sp,
                                                     fontWeight = FontWeight.Medium,
                                                     color = subTextColor
                                                 )
                                                 Text(
                                                     text = weather.current.sunset,
-                                                    fontSize = 15.sp,
+                                                    fontSize = (15f * fs).sp,
                                                     fontWeight = FontWeight.Bold,
                                                     color = textColor
                                                 )
@@ -629,7 +647,8 @@ fun MainWeatherScreen(
                         }
                         LayersForecastCard(
                             layersForecast = layers,
-                            isNight = isNight
+                            isNight = isNight,
+                            adaptive = adaptive
                         )
                     }
                 }
@@ -639,37 +658,37 @@ fun MainWeatherScreen(
                     item(key = "hourly_forecast_strip") {
                         Surface(
                             color = cardBg,
-                            shape = RoundedCornerShape(24.dp),
+                            shape = RoundedCornerShape(adaptive.cardCornerRadius),
                             shadowElevation = 3.dp,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
+                                .border(1.dp, cardBorder, RoundedCornerShape(adaptive.cardCornerRadius))
                                 .clickable { onOpenHourlyDetail() }
                                 .testTag("hourly_forecast_strip")
                         ) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 16.dp)
+                                    .padding(vertical = if (adaptive.isTabletOrUnfolded) 20.dp else 16.dp)
                             ) {
                                 // Section header with tap hint
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 18.dp),
+                                        .padding(horizontal = adaptive.cardPadding),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
                                         text = "Hourly Forecast",
-                                        fontSize = 17.sp,
+                                        fontSize = (17f * fs).sp,
                                         fontWeight = FontWeight.Bold,
                                         color = textColor
                                     )
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(
                                             text = "Deep-Dive",
-                                            fontSize = 12.sp,
+                                            fontSize = (12f * fs).sp,
                                             fontWeight = FontWeight.SemiBold,
                                             color = if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7)
                                         )
@@ -677,7 +696,7 @@ fun MainWeatherScreen(
                                             imageVector = Icons.Default.ChevronRight,
                                             contentDescription = "Open Hourly Detail",
                                             tint = if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7),
-                                            modifier = Modifier.size(16.dp)
+                                            modifier = Modifier.size((16f * fs).dp)
                                         )
                                     }
                                 }
@@ -687,8 +706,8 @@ fun MainWeatherScreen(
                                 // Horizontal strip of hours
                                 LazyRow(
                                     modifier = Modifier.fillMaxWidth(),
-                                    contentPadding = PaddingValues(horizontal = 14.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    contentPadding = PaddingValues(horizontal = if (adaptive.isTabletOrUnfolded) 18.dp else 14.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(if (adaptive.isTabletOrUnfolded) 12.dp else 10.dp)
                                 ) {
                                     items(
                                         items = weather.hourly.take(24),
@@ -697,7 +716,8 @@ fun MainWeatherScreen(
                                         HourlyStripCard(
                                             hour = hour,
                                             isNight = isNight,
-                                            temperatureUnit = tempUnit
+                                            temperatureUnit = tempUnit,
+                                            fontScale = fs
                                         )
                                     }
                                 }
@@ -713,7 +733,8 @@ fun MainWeatherScreen(
                             overview = uiState.aiOverview,
                             isLoading = uiState.isAiLoading,
                             isNight = isNight,
-                            onRefreshAi = onRefreshAi
+                            onRefreshAi = onRefreshAi,
+                            adaptive = adaptive
                         )
                     }
                 }
@@ -730,17 +751,17 @@ fun MainWeatherScreen(
 
                         Surface(
                             color = cardBg,
-                            shape = RoundedCornerShape(24.dp),
+                            shape = RoundedCornerShape(adaptive.cardCornerRadius),
                             shadowElevation = 3.dp,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
+                                .border(1.dp, cardBorder, RoundedCornerShape(adaptive.cardCornerRadius))
                                 .testTag("seven_day_forecast_card")
                         ) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(18.dp)
+                                    .padding(adaptive.cardPadding)
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -749,13 +770,13 @@ fun MainWeatherScreen(
                                 ) {
                                     Text(
                                         text = "7-Day Forecast",
-                                        fontSize = 17.sp,
+                                        fontSize = (17f * fs).sp,
                                         fontWeight = FontWeight.Bold,
                                         color = textColor
                                     )
                                     Text(
                                         text = if (isForecastExpanded) "Showing 7 days" else "Showing 3 days",
-                                        fontSize = 12.sp,
+                                        fontSize = (12f * fs).sp,
                                         fontWeight = FontWeight.Medium,
                                         color = subTextColor
                                     )
@@ -767,13 +788,14 @@ fun MainWeatherScreen(
                                         day = day,
                                         isNight = isNight,
                                         isToday = index == 0,
-                                        temperatureUnit = tempUnit
+                                        temperatureUnit = tempUnit,
+                                        fontScale = fs
                                     )
                                     if (index < displayedDays.size - 1) {
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(vertical = 8.dp)
+                                                .padding(vertical = (8f * fs).dp)
                                                 .height(0.6.dp)
                                                 .background(if (isNight) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f))
                                         )
@@ -797,13 +819,13 @@ fun MainWeatherScreen(
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(vertical = 10.dp, horizontal = 16.dp),
+                                                .padding(vertical = (10f * fs).dp, horizontal = 16.dp),
                                             horizontalArrangement = Arrangement.Center,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
                                                 text = if (isForecastExpanded) "Show Less" else "Expand to 7-Day Forecast",
-                                                fontSize = 13.5.sp,
+                                                fontSize = (13.5f * fs).sp,
                                                 fontWeight = FontWeight.SemiBold,
                                                 color = if (isNight) Color(0xFF93C5FD) else Color(0xFF1D4ED8)
                                             )
@@ -812,7 +834,7 @@ fun MainWeatherScreen(
                                                 imageVector = if (isForecastExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                                 contentDescription = if (isForecastExpanded) "Show Less" else "Expand to 7-Day Forecast",
                                                 tint = if (isNight) Color(0xFF93C5FD) else Color(0xFF1D4ED8),
-                                                modifier = Modifier.size(18.dp)
+                                                modifier = Modifier.size((18f * fs).dp)
                                             )
                                         }
                                     }
@@ -824,11 +846,12 @@ fun MainWeatherScreen(
 
                 // Bottom space and Mandatory Copyright
                 item(key = "copyright_footer") {
-                    AppCopyrightFooter(isNight = isNight)
+                    AppCopyrightFooter(isNight = isNight, fontScale = fs)
                     Spacer(modifier = Modifier.height(20.dp))
                 }
             }
         }
+    }
     }
 
     // Settings Dialog overlay
@@ -930,20 +953,21 @@ fun MainWeatherScreen(
 private fun HourlyStripCard(
     hour: HourlyWeather,
     isNight: Boolean,
-    temperatureUnit: TemperatureUnit
+    temperatureUnit: TemperatureUnit,
+    fontScale: Float = 1.0f
 ) {
     Surface(
         color = if (isNight) Color(0xFF1E2D52) else Color(0xFFF1F5F9),
         shape = RoundedCornerShape(18.dp),
-        modifier = Modifier.width(78.dp)
+        modifier = Modifier.width((78f * fontScale).dp)
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 12.dp, horizontal = 6.dp),
+            modifier = Modifier.padding(vertical = (12f * fontScale).dp, horizontal = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = hour.displayHour,
-                fontSize = 12.sp,
+                fontSize = (12f * fontScale).sp,
                 fontWeight = FontWeight.SemiBold,
                 color = if (isNight) Color(0xFFE2E8F0) else Color(0xFF334155)
             )
@@ -951,19 +975,19 @@ private fun HourlyStripCard(
             ConditionIcon(
                 weatherCode = hour.weatherCode,
                 isDay = hour.isDay,
-                size = 28.dp
+                size = (28f * fontScale).dp
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "${TemperatureFormatter.toDisplayInt(hour.temperature, temperatureUnit)}°",
-                fontSize = 16.sp,
+                fontSize = (16f * fontScale).sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = if (isNight) Color.White else Color(0xFF0F172A)
             )
             Spacer(modifier = Modifier.height(3.dp))
             Text(
                 text = "RF ${TemperatureFormatter.toDisplayInt(hour.realFeel, temperatureUnit)}°",
-                fontSize = 12.5.sp,
+                fontSize = (12.5f * fontScale).sp,
                 fontWeight = FontWeight.Bold,
                 color = if (isNight) Color(0xFFFFB74D) else Color(0xFFD97706),
                 maxLines = 1,
@@ -978,7 +1002,8 @@ private fun DailyForecastRow(
     day: DailyWeather,
     isNight: Boolean,
     isToday: Boolean,
-    temperatureUnit: TemperatureUnit
+    temperatureUnit: TemperatureUnit,
+    fontScale: Float = 1.0f
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -986,10 +1011,10 @@ private fun DailyForecastRow(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         // Day name & date
-        Column(modifier = Modifier.width(80.dp)) {
+        Column(modifier = Modifier.width((80f * fontScale).dp)) {
             Text(
                 text = day.dayOfWeek,
-                fontSize = 15.sp,
+                fontSize = (15f * fontScale).sp,
                 fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.SemiBold,
                 color = if (isToday) {
                     if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7)
@@ -997,7 +1022,7 @@ private fun DailyForecastRow(
             )
             Text(
                 text = day.formattedDate,
-                fontSize = 11.sp,
+                fontSize = (11f * fontScale).sp,
                 color = if (isNight) Color(0xFF94A3B8) else Color(0xFF64748B)
             )
         }
@@ -1010,20 +1035,20 @@ private fun DailyForecastRow(
             ConditionIcon(
                 weatherCode = day.weatherCode,
                 isDay = true,
-                size = 26.dp
+                size = (26f * fontScale).dp
             )
             Spacer(modifier = Modifier.width(8.dp))
             if (day.precipitationProbability > 20) {
                 Text(
                     text = "${day.precipitationProbability}% (${"%.1f".format(day.precipitationMm)} mm)",
-                    fontSize = 12.sp,
+                    fontSize = (12f * fontScale).sp,
                     fontWeight = FontWeight.SemiBold,
                     color = if (isNight) Color(0xFF67E8F9) else Color(0xFF0284C7)
                 )
             } else {
                 Text(
                     text = day.conditionDescription,
-                    fontSize = 12.sp,
+                    fontSize = (12f * fontScale).sp,
                     color = if (isNight) Color(0xFFCBD5E1) else Color(0xFF64748B),
                     maxLines = 1
                 )
@@ -1037,14 +1062,14 @@ private fun DailyForecastRow(
         ) {
             Text(
                 text = "${TemperatureFormatter.toDisplayInt(day.tempMin, temperatureUnit)}°",
-                fontSize = 14.sp,
+                fontSize = (14f * fontScale).sp,
                 color = if (isNight) Color(0xFF94A3B8) else Color(0xFF64748B),
                 fontWeight = FontWeight.Medium
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "${TemperatureFormatter.toDisplayInt(day.tempMax, temperatureUnit)}°",
-                fontSize = 15.sp,
+                fontSize = (15f * fontScale).sp,
                 fontWeight = FontWeight.Bold,
                 color = if (isNight) Color.White else Color(0xFF0F172A)
             )
@@ -1057,25 +1082,26 @@ private fun QuickMetricItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     value: String,
-    isNight: Boolean
+    isNight: Boolean,
+    fontScale: Float = 1.0f
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(
             imageVector = icon,
             contentDescription = label,
             tint = if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7),
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size((18f * fontScale).dp)
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = value,
-            fontSize = 13.sp,
+            fontSize = (13f * fontScale).sp,
             fontWeight = FontWeight.Bold,
             color = if (isNight) Color.White else Color(0xFF0F172A)
         )
         Text(
             text = label,
-            fontSize = 10.sp,
+            fontSize = (10f * fontScale).sp,
             color = if (isNight) Color(0xFF94A3B8) else Color(0xFF64748B)
         )
     }
