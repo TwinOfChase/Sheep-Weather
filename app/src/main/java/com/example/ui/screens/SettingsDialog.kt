@@ -1,7 +1,9 @@
 package com.example.ui.screens
 
+import android.Manifest
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -34,8 +36,10 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sync
@@ -67,6 +71,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.AppStyle
+import com.example.notifications.MorningWeatherNotificationManager
 import com.example.ui.ThemeMode
 import com.example.ui.components.AppCopyrightFooter
 import com.example.ui.components.GeminiSparkleLogo
@@ -82,12 +87,18 @@ fun SettingsDialog(
     appStyle: AppStyle,
     isDataTrackingEnabled: Boolean,
     isUseCurrentLocationEnabled: Boolean,
+    isMorningNotificationsEnabled: Boolean,
+    morningNotificationHour: Int,
+    morningNotificationMinute: Int,
     onSetTemperatureUnit: (TemperatureUnit) -> Unit,
     onSetAiEnabled: (Boolean) -> Unit,
     onSetThemeMode: (ThemeMode) -> Unit,
     onSetAppStyle: (AppStyle) -> Unit,
     onToggleDataTracking: (Boolean) -> Unit,
     onToggleUseCurrentLocation: (Boolean) -> Unit,
+    onToggleMorningNotifications: (Boolean) -> Unit,
+    onSetMorningNotificationTime: (Int, Int) -> Unit,
+    onPreviewMorningNotification: ((Boolean) -> Unit) -> Unit,
     onDetectCurrentLocation: () -> Unit,
     onCheckForUpdates: () -> Unit,
     onDismiss: () -> Unit
@@ -107,6 +118,31 @@ fun SettingsDialog(
         } else {
             onToggleUseCurrentLocation(false)
             Toast.makeText(context, "Location permission was denied", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            onToggleMorningNotifications(true)
+            Toast.makeText(context, "Morning summary notifications enabled", Toast.LENGTH_SHORT).show()
+        } else {
+            onToggleMorningNotifications(false)
+            Toast.makeText(context, "Notification permission is required for morning summaries", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val previewNotificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            onPreviewMorningNotification { posted ->
+                val msg = if (posted) "Morning summary notification sent!" else "Enable notifications to preview"
+                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(context, "Notification permission was denied", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -279,6 +315,182 @@ fun SettingsDialog(
                                 ),
                                 modifier = Modifier.testTag("toggle_ai_features")
                             )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Section: Morning Weather Summary Notifications (On by Default)
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = cardBg),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, cardBorder, RoundedCornerShape(16.dp))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsActive,
+                                contentDescription = null,
+                                tint = if (isNight) Color(0xFFFBBF24) else Color(0xFFD97706),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Morning Summary Notifications",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = textColor
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Daily Morning Briefing",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = textColor
+                                )
+                                Text(
+                                    text = if (isMorningNotificationsEnabled) {
+                                        "Sent at ${MorningWeatherNotificationManager.formatMorningTime(morningNotificationHour, morningNotificationMinute)} with current temp, conditions & daily high/low."
+                                    } else {
+                                        "Optional morning weather notifications are turned off."
+                                    },
+                                    fontSize = 12.sp,
+                                    color = subTextColor
+                                )
+                            }
+                            Switch(
+                                checked = isMorningNotificationsEnabled,
+                                onCheckedChange = { isChecked ->
+                                    if (isChecked) {
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                            !MorningWeatherNotificationManager.hasNotificationPermission(context)
+                                        ) {
+                                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                        } else {
+                                            onToggleMorningNotifications(true)
+                                        }
+                                    } else {
+                                        onToggleMorningNotifications(false)
+                                    }
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = if (isNight) Color(0xFFD97706) else Color(0xFFF59E0B)
+                                ),
+                                modifier = Modifier.testTag("toggle_morning_notifications")
+                            )
+                        }
+
+                        if (isMorningNotificationsEnabled) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Schedule,
+                                    contentDescription = null,
+                                    tint = subTextColor,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Morning Delivery Time",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = subTextColor
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            val timePresets = listOf(
+                                7 to 0,
+                                7 to 30,
+                                8 to 0,
+                                8 to 30
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                timePresets.forEach { (presetHour, presetMinute) ->
+                                    val isSelected =
+                                        morningNotificationHour == presetHour &&
+                                            morningNotificationMinute == presetMinute
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = if (isSelected) {
+                                            if (isNight) Color(0xFF1E3A8A) else Color(0xFFE0F2FE)
+                                        } else cardBg,
+                                        border = androidx.compose.foundation.BorderStroke(
+                                            1.dp,
+                                            if (isSelected) (if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7)) else cardBorder
+                                        ),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable {
+                                                onSetMorningNotificationTime(presetHour, presetMinute)
+                                            }
+                                            .testTag("morning_time_${presetHour}_${presetMinute}")
+                                    ) {
+                                        Text(
+                                            text = MorningWeatherNotificationManager.formatMorningTime(presetHour, presetMinute)
+                                                .replace(" AM", "a"),
+                                            fontSize = 12.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = textColor,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            OutlinedButton(
+                                onClick = {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                        !MorningWeatherNotificationManager.hasNotificationPermission(context)
+                                    ) {
+                                        previewNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    } else {
+                                        onPreviewMorningNotification { posted ->
+                                            val msg = if (posted) {
+                                                "Morning summary notification sent!"
+                                            } else {
+                                                "Enable notifications to preview"
+                                            }
+                                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("btn_preview_morning_notification"),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.NotificationsActive,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (isNight) Color(0xFFFBBF24) else Color(0xFFD97706)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Preview Morning Summary",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
                     }
                 }

@@ -73,6 +73,13 @@ class MainActivity : ComponentActivity() {
                                         onDismissUpdateDialog = { viewModel.dismissUpdateDialog() },
                                         onToggleDataTracking = { viewModel.toggleDataTracking(it) },
                                         onToggleUseCurrentLocation = { viewModel.toggleUseCurrentLocation(it) },
+                                        onToggleMorningNotifications = { viewModel.setMorningNotificationsEnabled(it) },
+                                        onSetMorningNotificationTime = { hour, minute ->
+                                            viewModel.setMorningNotificationTime(hour, minute)
+                                        },
+                                        onPreviewMorningNotification = { onDone ->
+                                            viewModel.previewMorningSummaryNotification(onDone)
+                                        },
                                         onFetchCurrentLocation = { viewModel.fetchDeviceLocation() },
                                         onCloseSettings = { viewModel.closeSettings() }
                                     )

@@ -3,4 +3,6 @@
     <string name="widget_name">Sheep Weather &amp; Clock</string>
     <string name="widget_description">Samsung-style weather and clock with customizable background and transparency</string>
     <string name="widget_settings_title">Widget Settings</string>
+    <string name="notification_channel_morning_name">Morning Weather Summary</string>
+    <string name="notification_channel_morning_desc">Daily morning weather summary with current temperature, conditions, and high/low temperatures.</string>
 </resources>

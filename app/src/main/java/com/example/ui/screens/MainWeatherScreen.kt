@@ -1,5 +1,9 @@
 package com.example.ui.screens
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -54,6 +58,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -73,6 +78,7 @@ import com.example.data.model.AppStyle
 import com.example.data.model.DailyWeather
 import com.example.data.model.HourlyWeather
 import com.example.data.model.LayersForecastCalculator
+import com.example.notifications.MorningWeatherNotificationManager
 import com.example.ui.ThemeMode
 import com.example.ui.WeatherUiState
 import com.example.ui.components.AiOverviewCard
@@ -106,6 +112,9 @@ fun MainWeatherScreen(
     onDismissUpdateDialog: () -> Unit = {},
     onToggleDataTracking: (Boolean) -> Unit = {},
     onToggleUseCurrentLocation: (Boolean) -> Unit = {},
+    onToggleMorningNotifications: (Boolean) -> Unit = {},
+    onSetMorningNotificationTime: (Int, Int) -> Unit = { _, _ -> },
+    onPreviewMorningNotification: ((Boolean) -> Unit) -> Unit = {},
     onFetchCurrentLocation: () -> Unit = {},
     onCloseSettings: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -116,6 +125,27 @@ fun MainWeatherScreen(
     val listState = rememberLazyListState()
     val isScrolling = listState.isScrollInProgress
     val isLowEnd = remember { DevicePerformanceHelper.isLowEndDevice(context) }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            onToggleMorningNotifications(true)
+        } else {
+            onToggleMorningNotifications(false)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            uiState.isMorningNotificationsEnabled &&
+            !MorningWeatherNotificationManager.hasNotificationPermission(context) &&
+            !MorningWeatherNotificationManager.wasPermissionPrompted(context)
+        ) {
+            MorningWeatherNotificationManager.markPermissionPrompted(context)
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     val weather = uiState.weatherInfo
     val isNight = uiState.isNightEffective
@@ -864,12 +894,18 @@ fun MainWeatherScreen(
             appStyle = uiState.appStyle,
             isDataTrackingEnabled = uiState.isDataTrackingEnabled,
             isUseCurrentLocationEnabled = uiState.isUseCurrentLocationEnabled,
+            isMorningNotificationsEnabled = uiState.isMorningNotificationsEnabled,
+            morningNotificationHour = uiState.morningNotificationHour,
+            morningNotificationMinute = uiState.morningNotificationMinute,
             onSetTemperatureUnit = onSetTemperatureUnit,
             onSetAiEnabled = onSetAiEnabled,
             onSetThemeMode = onSetThemeMode,
             onSetAppStyle = onSetAppStyle,
             onToggleDataTracking = onToggleDataTracking,
             onToggleUseCurrentLocation = onToggleUseCurrentLocation,
+            onToggleMorningNotifications = onToggleMorningNotifications,
+            onSetMorningNotificationTime = onSetMorningNotificationTime,
+            onPreviewMorningNotification = onPreviewMorningNotification,
             onDetectCurrentLocation = onFetchCurrentLocation,
             onCheckForUpdates = onCheckForUpdates,
             onDismiss = onCloseSettings

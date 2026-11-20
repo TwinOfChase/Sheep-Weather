@@ -19,7 +19,7 @@ fun AppCopyrightFooter(
     fontScale: Float = 1.0f
 ) {
     Text(
-        text = "© Studio Of Chase 2026. All Rights Reserved.",
+        text = "© Pine Software Design Aotearoa 2026. All Rights Reserved.",
         fontSize = (11.5f * fontScale).sp,
         fontWeight = FontWeight.Medium,
         color = if (isNight) Color(0xFF94A3B8).copy(alpha = 0.85f) else Color(0xFF64748B),

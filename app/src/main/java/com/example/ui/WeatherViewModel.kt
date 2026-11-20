@@ -15,6 +15,7 @@ import com.example.data.remote.AiWeatherOverview
 import com.example.data.remote.GeminiWeatherService
 import com.example.data.remote.GeocodingResult
 import com.example.data.repository.WeatherRepository
+import com.example.notifications.MorningWeatherNotificationManager
 import com.example.util.AppUpdateManager
 import com.example.util.LocationHelper
 import com.example.util.TemperatureFormatter
@@ -47,6 +48,9 @@ data class WeatherUiState(
     val moonInfo: MoonInfo = WeatherRepository.calculateMoonPhase(),
     val isDataTrackingEnabled: Boolean = true,
     val isUseCurrentLocationEnabled: Boolean = false,
+    val isMorningNotificationsEnabled: Boolean = true,
+    val morningNotificationHour: Int = MorningWeatherNotificationManager.DEFAULT_MORNING_HOUR,
+    val morningNotificationMinute: Int = MorningWeatherNotificationManager.DEFAULT_MORNING_MINUTE,
     val isSearchingCity: Boolean = false,
     val citySearchResults: List<GeocodingResult> = emptyList(),
     val currentScreen: WeatherScreen = WeatherScreen.Main,
@@ -101,12 +105,28 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 AppStyle.valueOf(prefs.getString("app_style", AppStyle.CARTOON_SHEEP.name) ?: AppStyle.CARTOON_SHEEP.name)
             } catch (_: Exception) { AppStyle.CARTOON_SHEEP },
             isDataTrackingEnabled = prefs.getBoolean("data_tracking_enabled", true),
-            isUseCurrentLocationEnabled = prefs.getBoolean("use_current_location_enabled", false)
+            isUseCurrentLocationEnabled = prefs.getBoolean("use_current_location_enabled", false),
+            isMorningNotificationsEnabled = prefs.getBoolean(
+                MorningWeatherNotificationManager.KEY_MORNING_NOTIFICATIONS_ENABLED,
+                true
+            ),
+            morningNotificationHour = prefs.getInt(
+                MorningWeatherNotificationManager.KEY_MORNING_HOUR,
+                MorningWeatherNotificationManager.DEFAULT_MORNING_HOUR
+            ),
+            morningNotificationMinute = prefs.getInt(
+                MorningWeatherNotificationManager.KEY_MORNING_MINUTE,
+                MorningWeatherNotificationManager.DEFAULT_MORNING_MINUTE
+            )
         )
     )
     val uiState: StateFlow<WeatherUiState> = _uiState.asStateFlow()
 
     init {
+        MorningWeatherNotificationManager.createNotificationChannel(application)
+        if (_uiState.value.isMorningNotificationsEnabled) {
+            MorningWeatherNotificationManager.scheduleMorningSummary(application)
+        }
         viewModelScope.launch {
             repository.initializeDefaultLocationsIfNeeded()
             observeLocations()
@@ -309,6 +329,31 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     fun toggleDataTracking(enabled: Boolean) {
         prefs.edit().putBoolean("data_tracking_enabled", enabled).apply()
         _uiState.update { it.copy(isDataTrackingEnabled = enabled) }
+    }
+
+    fun setMorningNotificationsEnabled(enabled: Boolean) {
+        MorningWeatherNotificationManager.setEnabled(getApplication(), enabled)
+        _uiState.update { it.copy(isMorningNotificationsEnabled = enabled) }
+    }
+
+    fun setMorningNotificationTime(hour: Int, minute: Int) {
+        MorningWeatherNotificationManager.setMorningTime(getApplication(), hour, minute)
+        _uiState.update {
+            it.copy(
+                morningNotificationHour = hour.coerceIn(0, 23),
+                morningNotificationMinute = minute.coerceIn(0, 59)
+            )
+        }
+    }
+
+    fun previewMorningSummaryNotification(onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val posted = MorningWeatherNotificationManager.showMorningSummaryNotification(
+                context = getApplication(),
+                weatherOverride = _uiState.value.weatherInfo
+            )
+            onResult(posted)
+        }
     }
 
     fun checkForUpdates(customRepo: String? = null) {

@@ -34,6 +34,13 @@ Sheep Weather combines accurate, real-time meteorological forecasts with a playf
 ### 👕 Cleaner Layers & Outfit Card
 - **Streamlined Label**: Underneath the T-shirt icon and layer number (`👕 2`), the label now displays simply **`Layers`** (or **`Layer`**) without repeating the number underneath.
 
+### 🔔 Morning Summary Notifications (On by Default)
+- **Daily Morning Briefing**: Optional daily morning weather notifications are enabled by default (with customizable morning delivery time in Settings and a one-tap **Preview Morning Summary** button).
+- **Everything You Need at a Glance**: Each notification displays your selected city's current temperature, current weather conditions, and today's high and low temperatures in your chosen `°C` / `°F` unit.
+
+### 🏷️ Brand Refresh
+- Updated copyright branding across the app to **Pine Software Design Aotearoa**.
+
 ### 🔄 Versioning & Updates
 - Bumped build to **v2.7.2** (`versionCode 9`).
 - In-app **Check For Updates** seamlessly recognizes `v2.7.2` and direct `SheepWeather-v2.7.2.apk` downloads.

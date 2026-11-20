@@ -304,7 +304,7 @@ fun AnimatedSplashScreen(
 
                 Spacer(modifier = Modifier.height(if (adaptive.isTabletOrUnfolded) 16.dp else 14.dp))
 
-                // Copyright: "Copyright Studio Of Chase 2026. All Rights Reserved."
+                // Copyright: "© Pine Software Design Aotearoa 2026. All Rights Reserved."
                 AppCopyrightFooter(
                     isNight = isNight,
                     fontScale = if (adaptive.isTabletOrUnfolded) adaptive.fontScale else 1.0f
