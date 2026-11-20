@@ -7,6 +7,7 @@ import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,7 +27,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import com.example.widget.SheepWeatherWidgetConfigureActivity
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DataSaverOn
@@ -62,19 +62,29 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.R
 import com.example.data.model.AppStyle
 import com.example.notifications.MorningWeatherNotificationManager
 import com.example.ui.ThemeMode
 import com.example.ui.components.AppCopyrightFooter
 import com.example.ui.components.GeminiSparkleLogo
+import com.example.ui.theme.CandlelightGold
+import com.example.ui.theme.DeepPineGreen
+import com.example.ui.theme.DeepPineMint
+import com.example.ui.theme.LocalSheepWeatherPalette
+import com.example.ui.theme.PohutukawaCrimson
+import com.example.ui.theme.PohutukawaCrimsonGlow
+import com.example.ui.theme.WarmHolidayGold
 import com.example.util.AppUpdateManager
 import com.example.util.TemperatureUnit
 
@@ -90,6 +100,8 @@ fun SettingsDialog(
     isMorningNotificationsEnabled: Boolean,
     morningNotificationHour: Int,
     morningNotificationMinute: Int,
+    isChristmasThemeEnabled: Boolean = false,
+    isChristmasIconEnabled: Boolean = false,
     onSetTemperatureUnit: (TemperatureUnit) -> Unit,
     onSetAiEnabled: (Boolean) -> Unit,
     onSetThemeMode: (ThemeMode) -> Unit,
@@ -99,6 +111,8 @@ fun SettingsDialog(
     onToggleMorningNotifications: (Boolean) -> Unit,
     onSetMorningNotificationTime: (Int, Int) -> Unit,
     onPreviewMorningNotification: ((Boolean) -> Unit) -> Unit,
+    onToggleChristmasTheme: (Boolean) -> Unit = {},
+    onToggleChristmasIcon: (Boolean) -> Boolean = { true },
     onDetectCurrentLocation: () -> Unit,
     onCheckForUpdates: () -> Unit,
     onDismiss: () -> Unit
@@ -146,11 +160,15 @@ fun SettingsDialog(
         }
     }
 
-    val dialogBg = if (isNight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
-    val cardBg = if (isNight) Color(0xFF1E293B) else Color.White
-    val cardBorder = if (isNight) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
-    val textColor = if (isNight) Color.White else Color(0xFF0F172A)
-    val subTextColor = if (isNight) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val palette = LocalSheepWeatherPalette.current
+    val dialogBg = if (palette.isChristmas) palette.drawerBg else if (isNight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val cardBg = if (palette.isChristmas) palette.cardBg else if (isNight) Color(0xFF1E293B) else Color.White
+    val cardBorder = if (palette.isChristmas) palette.cardBorder else if (isNight) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
+    val textColor = if (palette.isChristmas) palette.textPrimary else if (isNight) Color.White else Color(0xFF0F172A)
+    val subTextColor = if (palette.isChristmas) palette.textSecondary else if (isNight) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val accentColor = if (palette.isChristmas) palette.primaryAccent else if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7)
+    val selectedChipBg = if (palette.isChristmas) palette.innerWellBg else if (isNight) Color(0xFF1E3A8A) else Color(0xFFE0F2FE)
+    val selectedChipBorder = if (palette.isChristmas) palette.primaryAccent else if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7)
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -181,7 +199,7 @@ fun SettingsDialog(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
-                                .background(if (isNight) Color(0xFF2563EB) else Color(0xFF0284C7)),
+                                .background(if (palette.isChristmas) palette.primaryAccent else if (isNight) Color(0xFF2563EB) else Color(0xFF0284C7)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -773,6 +791,171 @@ fun SettingsDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // Section 3B: Christmas Seasonal Theme & App Icon
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = cardBg),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(
+                            width = if (isChristmasThemeEnabled || isChristmasIconEnabled) 1.4.dp else 1.dp,
+                            color = if (isChristmasThemeEnabled || isChristmasIconEnabled) {
+                                if (isNight) CandlelightGold.copy(alpha = 0.45f) else PohutukawaCrimson.copy(alpha = 0.35f)
+                            } else cardBorder,
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.2.dp,
+                                        if (isNight) CandlelightGold else WarmHolidayGold
+                                    ),
+                                    modifier = Modifier.size(44.dp)
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.img_christmas_sheep_icon),
+                                        contentDescription = "Christmas Sheep Icon Preview",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.size(44.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = "Christmas Seasonal Theme",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = textColor
+                                    )
+                                    Text(
+                                        text = "Pōhutukawa, deep pine & warm gold",
+                                        fontSize = 11.5.sp,
+                                        color = subTextColor
+                                    )
+                                }
+                            }
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isNight) PohutukawaCrimsonGlow else PohutukawaCrimson)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isNight) DeepPineMint else DeepPineGreen)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isNight) CandlelightGold else WarmHolidayGold)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Christmas Theme",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = textColor
+                                )
+                                Text(
+                                    text = if (isChristmasThemeEnabled) {
+                                        "Festive Santa sheep, cozy warm cards, and red-green accents active."
+                                    } else {
+                                        "Optional festive sheep with Santa hat, warm cream/pine cards & gold accents."
+                                    },
+                                    fontSize = 12.sp,
+                                    color = subTextColor
+                                )
+                            }
+                            Switch(
+                                checked = isChristmasThemeEnabled,
+                                onCheckedChange = onToggleChristmasTheme,
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = if (isNight) PohutukawaCrimsonGlow else PohutukawaCrimson
+                                ),
+                                modifier = Modifier.testTag("toggle_christmas_theme")
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+                        HorizontalDivider(color = cardBorder)
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Christmas App Icon",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = textColor
+                                )
+                                Text(
+                                    text = if (isChristmasIconEnabled) {
+                                        "Santa-hat & scarf sheep launcher icon active."
+                                    } else {
+                                        "Switch home screen icon to our festive Christmas sheep."
+                                    },
+                                    fontSize = 12.sp,
+                                    color = subTextColor
+                                )
+                            }
+                            Switch(
+                                checked = isChristmasIconEnabled,
+                                onCheckedChange = { isChecked ->
+                                    val updated = onToggleChristmasIcon(isChecked)
+                                    if (updated) {
+                                        val msg = if (isChecked) {
+                                            "Christmas sheep icon enabled! Your launcher may take a moment to refresh."
+                                        } else {
+                                            "Classic Sheep Weather icon restored."
+                                        }
+                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "Could not switch app icon on this device.", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = if (isNight) DeepPineMint else DeepPineGreen
+                                ),
+                                modifier = Modifier.testTag("toggle_christmas_icon")
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
                 // Section 4: App Visual Style (Cartoon vs Photo)
                 Card(
                     colors = CardDefaults.cardColors(containerColor = cardBg),
@@ -919,7 +1102,7 @@ fun SettingsDialog(
                                 .fillMaxWidth()
                                 .testTag("btn_auto_download_apk"),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isNight) Color(0xFF0284C7) else Color(0xFF0284C7)
+                                containerColor = accentColor
                             ),
                             shape = RoundedCornerShape(12.dp)
                         ) {
@@ -1268,7 +1451,7 @@ fun SettingsDialog(
                 // Section 9: App Version & Notice
                 Card(
                     colors = CardDefaults.cardColors(
-                        containerColor = if (isNight) Color(0xFF1E293B).copy(alpha = 0.7f) else Color(0xFFF1F5F9)
+                        containerColor = if (palette.isChristmas) palette.innerWellBg else if (isNight) Color(0xFF1E293B).copy(alpha = 0.7f) else Color(0xFFF1F5F9)
                     ),
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -1278,12 +1461,12 @@ fun SettingsDialog(
                             Icon(
                                 imageVector = Icons.Default.Info,
                                 contentDescription = null,
-                                tint = if (isNight) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                tint = subTextColor,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Sheep Weather v2.7.2",
+                                text = "Sheep Weather v2.7.3",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = textColor
@@ -1313,7 +1496,7 @@ fun SettingsDialog(
                         .fillMaxWidth()
                         .testTag("dismiss_settings_button"),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isNight) Color(0xFF334155) else Color(0xFFE2E8F0),
+                        containerColor = if (palette.isChristmas) palette.innerWellBg else if (isNight) Color(0xFF334155) else Color(0xFFE2E8F0),
                         contentColor = textColor
                     ),
                     shape = RoundedCornerShape(12.dp)

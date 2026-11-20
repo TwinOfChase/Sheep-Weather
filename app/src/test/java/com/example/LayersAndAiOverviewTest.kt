@@ -195,8 +195,9 @@ class LayersAndAiOverviewTest {
         assertTrue(isFresh)
 
         val version = com.example.util.AppUpdateManager.getCurrentVersion()
-        assertEquals("2.7.2", version)
+        assertEquals("2.7.3", version)
 
+        assertEquals("2.7.3", com.example.util.AppUpdateManager.sanitizeVersion("Version2.7.3"))
         assertEquals("2.7.2", com.example.util.AppUpdateManager.sanitizeVersion("Version2.7.2"))
         assertEquals("2.7.1", com.example.util.AppUpdateManager.sanitizeVersion("Version2.7.1"))
         assertEquals("2.7.0", com.example.util.AppUpdateManager.sanitizeVersion("Version2.7.0"))

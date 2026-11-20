@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.LocationEntity
 import com.example.ui.components.AppCopyrightFooter
+import com.example.ui.theme.LocalSheepWeatherPalette
 import com.example.ui.util.AdaptiveUiSpec
 import com.example.util.AppUpdateManager
 
@@ -74,12 +75,13 @@ fun LocationsDrawerContent(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val palette = LocalSheepWeatherPalette.current
     var showAddDialog by remember { mutableStateOf(false) }
 
-    val bgColor = if (isNight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
-    val cardBg = if (isNight) Color(0xFF1E293B) else Color.White
-    val textColor = if (isNight) Color(0xFFF8FAFC) else Color(0xFF0F172A)
-    val subTextColor = if (isNight) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val bgColor = palette.drawerBg
+    val cardBg = palette.cardBg
+    val textColor = palette.textPrimary
+    val subTextColor = palette.textSecondary
 
     val fs = adaptive.fontScale
 
@@ -101,7 +103,7 @@ fun LocationsDrawerContent(
                 Icon(
                     imageVector = Icons.Default.Star,
                     contentDescription = null,
-                    tint = Color(0xFFFFB74D),
+                    tint = palette.goldAccent,
                     modifier = Modifier.size((22f * fs).dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -113,7 +115,7 @@ fun LocationsDrawerContent(
                         color = textColor
                     )
                     Text(
-                        text = "Slide-out Menu • v2.7.2",
+                        text = "Slide-out Menu • v2.7.3",
                         fontSize = (11f * fs).sp,
                         color = subTextColor
                     )

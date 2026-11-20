@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.LayersForecast
+import com.example.ui.theme.LocalSheepWeatherPalette
 import com.example.ui.util.AdaptiveUiSpec
 
 @Composable
@@ -40,10 +41,11 @@ fun LayersForecastCard(
     adaptive: AdaptiveUiSpec = AdaptiveUiSpec.PhoneBaseline,
     modifier: Modifier = Modifier
 ) {
-    val cardBg = if (isNight) Color(0xFF16203A) else Color.White
-    val cardBorder = if (isNight) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)
-    val textColor = if (isNight) Color(0xFFF1F5F9) else Color(0xFF0F172A)
-    val subTextColor = if (isNight) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val palette = LocalSheepWeatherPalette.current
+    val cardBg = palette.cardBg
+    val cardBorder = palette.cardBorder
+    val textColor = palette.textPrimary
+    val subTextColor = palette.textSecondary
     val fs = adaptive.fontScale
 
     Surface(
@@ -90,10 +92,14 @@ fun LayersForecastCard(
                 // Layer Hero Box
                 Surface(
                     shape = RoundedCornerShape(18.dp),
-                    color = if (isNight) Color(0xFF1E2D52) else Color(0xFFEFF6FF),
+                    color = if (palette.isChristmas) {
+                        palette.innerWellBg
+                    } else if (isNight) Color(0xFF1E2D52) else Color(0xFFEFF6FF),
                     border = androidx.compose.foundation.BorderStroke(
                         1.dp,
-                        if (isNight) Color(0xFF3B82F6).copy(alpha = 0.35f) else Color(0xFFBFDBFE)
+                        if (palette.isChristmas) {
+                            palette.primaryAccent.copy(alpha = if (isNight) 0.42f else 0.25f)
+                        } else if (isNight) Color(0xFF3B82F6).copy(alpha = 0.35f) else Color(0xFFBFDBFE)
                     ),
                     modifier = Modifier
                         .weight(1f)
@@ -107,7 +113,9 @@ fun LayersForecastCard(
                             text = "AMOUNT OF LAYERS",
                             fontSize = (10.5f * fs).sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isNight) Color(0xFF93C5FD) else Color(0xFF1D4ED8),
+                            color = if (palette.isChristmas) {
+                                palette.primaryAccent
+                            } else if (isNight) Color(0xFF93C5FD) else Color(0xFF1D4ED8),
                             letterSpacing = 0.5.sp
                         )
                         Spacer(modifier = Modifier.height(6.dp))
@@ -212,10 +220,12 @@ fun LayersForecastCard(
             // Informational Summary Banner
             Surface(
                 shape = RoundedCornerShape(14.dp),
-                color = if (isNight) Color(0xFF1E2D52).copy(alpha = 0.5f) else Color(0xFFF8FAFC),
+                color = if (palette.isChristmas) {
+                    palette.innerWellBg.copy(alpha = 0.78f)
+                } else if (isNight) Color(0xFF1E2D52).copy(alpha = 0.5f) else Color(0xFFF8FAFC),
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp,
-                    if (isNight) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
+                    if (palette.isChristmas) palette.innerWellBorder else if (isNight) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {

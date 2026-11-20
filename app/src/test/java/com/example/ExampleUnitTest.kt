@@ -5,8 +5,19 @@ import com.example.data.model.DailyWeather
 import com.example.data.model.WeatherInfo
 import com.example.notifications.MorningWeatherNotificationManager
 import com.example.ui.WeatherUiState
+import com.example.ui.theme.CandlelightGold
+import com.example.ui.theme.ChristmasPineNightCanvas
+import com.example.ui.theme.ChristmasWarmCreamCanvas
+import com.example.ui.theme.DeepPineGreen
+import com.example.ui.theme.DeepPineMint
+import com.example.ui.theme.LightCanvas
+import com.example.ui.theme.PohutukawaCrimson
+import com.example.ui.theme.PohutukawaCrimsonGlow
+import com.example.ui.theme.WarmHolidayGold
+import com.example.ui.theme.resolveSheepWeatherPalette
 import com.example.util.TemperatureUnit
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Calendar
@@ -110,5 +121,35 @@ class ExampleUnitTest {
     assertEquals(22, nextDayCal.get(Calendar.DAY_OF_MONTH))
     assertEquals(7, nextDayCal.get(Calendar.HOUR_OF_DAY))
     assertEquals(30, nextDayCal.get(Calendar.MINUTE))
+  }
+
+  @Test
+  fun christmasSeasonalTheme_disabledByDefault() {
+    val defaultState = WeatherUiState()
+    assertFalse(defaultState.isChristmasThemeEnabled)
+    assertFalse(defaultState.isChristmasIconEnabled)
+  }
+
+  @Test
+  fun christmasPalette_resolvesPohutukawaPineGoldDistinctly() {
+    val standardDay = resolveSheepWeatherPalette(isNight = false, isChristmasEnabled = false)
+    assertFalse(standardDay.isChristmas)
+    assertEquals(LightCanvas, standardDay.canvasBg)
+
+    val christmasDay = resolveSheepWeatherPalette(isNight = false, isChristmasEnabled = true)
+    assertTrue(christmasDay.isChristmas)
+    assertFalse(christmasDay.isNight)
+    assertEquals(ChristmasWarmCreamCanvas, christmasDay.canvasBg)
+    assertEquals(PohutukawaCrimson, christmasDay.primaryAccent)
+    assertEquals(DeepPineGreen, christmasDay.secondaryAccent)
+    assertEquals(WarmHolidayGold, christmasDay.goldAccent)
+
+    val christmasNight = resolveSheepWeatherPalette(isNight = true, isChristmasEnabled = true)
+    assertTrue(christmasNight.isChristmas)
+    assertTrue(christmasNight.isNight)
+    assertEquals(ChristmasPineNightCanvas, christmasNight.canvasBg)
+    assertEquals(PohutukawaCrimsonGlow, christmasNight.primaryAccent)
+    assertEquals(DeepPineMint, christmasNight.secondaryAccent)
+    assertEquals(CandlelightGold, christmasNight.goldAccent)
   }
 }

@@ -87,6 +87,7 @@ import com.example.ui.components.CartoonSheepCanvas
 import com.example.ui.components.ConditionIcon
 import com.example.ui.components.LayersForecastCard
 import com.example.ui.components.RealisticWeatherBackdrop
+import com.example.ui.theme.LocalSheepWeatherPalette
 import com.example.ui.util.AdaptiveUiSpec
 import com.example.ui.util.computeAdaptiveUiSpec
 import com.example.util.AppUpdateManager
@@ -115,6 +116,8 @@ fun MainWeatherScreen(
     onToggleMorningNotifications: (Boolean) -> Unit = {},
     onSetMorningNotificationTime: (Int, Int) -> Unit = { _, _ -> },
     onPreviewMorningNotification: ((Boolean) -> Unit) -> Unit = {},
+    onToggleChristmasTheme: (Boolean) -> Unit = {},
+    onToggleChristmasIcon: (Boolean) -> Boolean = { true },
     onFetchCurrentLocation: () -> Unit = {},
     onCloseSettings: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -158,11 +161,12 @@ fun MainWeatherScreen(
         if (lastMillis <= 0L) true else (System.currentTimeMillis() - lastMillis) >= 3_600_000L
     }
 
-    // High contrast typography colors
-    val textColor = if (isNight) Color(0xFFF8FAFC) else Color(0xFF0F172A)
-    val subTextColor = if (isNight) Color(0xFF94A3B8) else Color(0xFF475569)
-    val cardBg = if (isNight) Color(0xFF14203B).copy(alpha = 0.88f) else Color.White.copy(alpha = 0.92f)
-    val cardBorder = if (isNight) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)
+    // High contrast typography & seasonal palette colors
+    val palette = LocalSheepWeatherPalette.current
+    val textColor = palette.textPrimary
+    val subTextColor = palette.textSecondary
+    val cardBg = palette.cardBg
+    val cardBorder = palette.cardBorder
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val adaptive = computeAdaptiveUiSpec(maxWidth, maxHeight)
@@ -173,7 +177,7 @@ fun MainWeatherScreen(
             gesturesEnabled = true,
             drawerContent = {
                 ModalDrawerSheet(
-                    drawerContainerColor = if (isNight) Color(0xFF0F172A) else Color(0xFFF8FAFC),
+                    drawerContainerColor = palette.drawerBg,
                     drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
                     modifier = Modifier.width(adaptive.drawerWidth)
                 ) {
@@ -215,6 +219,7 @@ fun MainWeatherScreen(
                     AppStyle.CARTOON_SHEEP -> {
                         CartoonSheepCanvas(
                             isNight = isNight,
+                            isChristmas = uiState.isChristmasThemeEnabled,
                             isScrolling = isScrolling,
                             isLowEndDevice = isLowEnd,
                             modifier = Modifier
@@ -226,6 +231,7 @@ fun MainWeatherScreen(
                         RealisticWeatherBackdrop(
                             isNight = isNight,
                             moonInfo = uiState.moonInfo,
+                            isChristmas = uiState.isChristmasThemeEnabled,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .graphicsLayer { clip = false }
@@ -274,7 +280,7 @@ fun MainWeatherScreen(
                                 Icon(
                                     imageVector = Icons.Default.LocationOn,
                                     contentDescription = "Location",
-                                    tint = if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7),
+                                    tint = palette.primaryAccent,
                                     modifier = Modifier.size((18f * fs).dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -390,7 +396,7 @@ fun MainWeatherScreen(
                                         Icon(
                                             imageVector = Icons.Default.Thermostat,
                                             contentDescription = "Temperature",
-                                            tint = if (isNight) Color(0xFFFF9F1C) else Color(0xFFEA580C),
+                                            tint = if (palette.isChristmas) palette.primaryAccent else if (isNight) Color(0xFFFF9F1C) else Color(0xFFEA580C),
                                             modifier = Modifier.size((22f * fs).dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
@@ -425,7 +431,7 @@ fun MainWeatherScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .background(
-                                            color = if (isNight) Color(0xFF1E2D52) else Color(0xFFF1F5F9),
+                                            color = palette.innerWellBg,
                                             shape = RoundedCornerShape(18.dp)
                                         )
                                         .padding(vertical = (12f * fs).dp, horizontal = (16f * fs).dp),
@@ -465,7 +471,7 @@ fun MainWeatherScreen(
                                             text = "REAL FEEL",
                                             fontSize = (11f * fs).sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = if (isNight) Color(0xFFFFB74D) else Color(0xFFD97706),
+                                            color = palette.goldAccent,
                                             letterSpacing = 0.6.sp
                                         )
                                         Spacer(modifier = Modifier.height(2.dp))
@@ -473,7 +479,7 @@ fun MainWeatherScreen(
                                             text = TemperatureFormatter.format(weather.current.realFeel, tempUnit),
                                             fontSize = (36f * fs).sp,
                                             fontWeight = FontWeight.Black,
-                                            color = if (isNight) Color(0xFFFFB74D) else Color(0xFFD97706),
+                                            color = palette.goldAccent,
                                             letterSpacing = (-1.2).sp
                                         )
                                     }
@@ -725,7 +731,7 @@ fun MainWeatherScreen(
                                         Icon(
                                             imageVector = Icons.Default.ChevronRight,
                                             contentDescription = "Open Hourly Detail",
-                                            tint = if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7),
+                                            tint = if (palette.isChristmas) palette.primaryAccent else if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7),
                                             modifier = Modifier.size((16f * fs).dp)
                                         )
                                     }
@@ -836,10 +842,10 @@ fun MainWeatherScreen(
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Surface(
                                         shape = RoundedCornerShape(14.dp),
-                                        color = if (isNight) Color(0xFF1E2D52) else Color(0xFFF1F5F9),
+                                        color = palette.innerWellBg,
                                         border = androidx.compose.foundation.BorderStroke(
                                             1.dp,
-                                            if (isNight) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)
+                                            cardBorder
                                         ),
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -857,13 +863,13 @@ fun MainWeatherScreen(
                                                 text = if (isForecastExpanded) "Show Less" else "Expand to 7-Day Forecast",
                                                 fontSize = (13.5f * fs).sp,
                                                 fontWeight = FontWeight.SemiBold,
-                                                color = if (isNight) Color(0xFF93C5FD) else Color(0xFF1D4ED8)
+                                                color = if (palette.isChristmas) palette.primaryAccent else if (isNight) Color(0xFF93C5FD) else Color(0xFF1D4ED8)
                                             )
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Icon(
                                                 imageVector = if (isForecastExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                                 contentDescription = if (isForecastExpanded) "Show Less" else "Expand to 7-Day Forecast",
-                                                tint = if (isNight) Color(0xFF93C5FD) else Color(0xFF1D4ED8),
+                                                tint = if (palette.isChristmas) palette.primaryAccent else if (isNight) Color(0xFF93C5FD) else Color(0xFF1D4ED8),
                                                 modifier = Modifier.size((18f * fs).dp)
                                             )
                                         }
@@ -897,6 +903,8 @@ fun MainWeatherScreen(
             isMorningNotificationsEnabled = uiState.isMorningNotificationsEnabled,
             morningNotificationHour = uiState.morningNotificationHour,
             morningNotificationMinute = uiState.morningNotificationMinute,
+            isChristmasThemeEnabled = uiState.isChristmasThemeEnabled,
+            isChristmasIconEnabled = uiState.isChristmasIconEnabled,
             onSetTemperatureUnit = onSetTemperatureUnit,
             onSetAiEnabled = onSetAiEnabled,
             onSetThemeMode = onSetThemeMode,
@@ -906,6 +914,8 @@ fun MainWeatherScreen(
             onToggleMorningNotifications = onToggleMorningNotifications,
             onSetMorningNotificationTime = onSetMorningNotificationTime,
             onPreviewMorningNotification = onPreviewMorningNotification,
+            onToggleChristmasTheme = onToggleChristmasTheme,
+            onToggleChristmasIcon = onToggleChristmasIcon,
             onDetectCurrentLocation = onFetchCurrentLocation,
             onCheckForUpdates = onCheckForUpdates,
             onDismiss = onCloseSettings
@@ -992,8 +1002,9 @@ private fun HourlyStripCard(
     temperatureUnit: TemperatureUnit,
     fontScale: Float = 1.0f
 ) {
+    val palette = LocalSheepWeatherPalette.current
     Surface(
-        color = if (isNight) Color(0xFF1E2D52) else Color(0xFFF1F5F9),
+        color = palette.innerWellBg,
         shape = RoundedCornerShape(18.dp),
         modifier = Modifier.width((78f * fontScale).dp)
     ) {
@@ -1005,7 +1016,7 @@ private fun HourlyStripCard(
                 text = hour.displayHour,
                 fontSize = (12f * fontScale).sp,
                 fontWeight = FontWeight.SemiBold,
-                color = if (isNight) Color(0xFFE2E8F0) else Color(0xFF334155)
+                color = if (palette.isChristmas) palette.textSecondary else if (isNight) Color(0xFFE2E8F0) else Color(0xFF334155)
             )
             Spacer(modifier = Modifier.height(8.dp))
             ConditionIcon(
@@ -1018,14 +1029,14 @@ private fun HourlyStripCard(
                 text = "${TemperatureFormatter.toDisplayInt(hour.temperature, temperatureUnit)}°",
                 fontSize = (16f * fontScale).sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = if (isNight) Color.White else Color(0xFF0F172A)
+                color = palette.textPrimary
             )
             Spacer(modifier = Modifier.height(3.dp))
             Text(
                 text = "RF ${TemperatureFormatter.toDisplayInt(hour.realFeel, temperatureUnit)}°",
                 fontSize = (12.5f * fontScale).sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isNight) Color(0xFFFFB74D) else Color(0xFFD97706),
+                color = palette.goldAccent,
                 maxLines = 1,
                 softWrap = false
             )
@@ -1041,6 +1052,7 @@ private fun DailyForecastRow(
     temperatureUnit: TemperatureUnit,
     fontScale: Float = 1.0f
 ) {
+    val palette = LocalSheepWeatherPalette.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -1053,13 +1065,13 @@ private fun DailyForecastRow(
                 fontSize = (15f * fontScale).sp,
                 fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.SemiBold,
                 color = if (isToday) {
-                    if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7)
-                } else if (isNight) Color.White else Color(0xFF0F172A)
+                    if (palette.isChristmas) palette.primaryAccent else if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7)
+                } else palette.textPrimary
             )
             Text(
                 text = day.formattedDate,
                 fontSize = (11f * fontScale).sp,
-                color = if (isNight) Color(0xFF94A3B8) else Color(0xFF64748B)
+                color = palette.textSecondary
             )
         }
 
@@ -1079,13 +1091,13 @@ private fun DailyForecastRow(
                     text = "${day.precipitationProbability}% (${"%.1f".format(day.precipitationMm)} mm)",
                     fontSize = (12f * fontScale).sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (isNight) Color(0xFF67E8F9) else Color(0xFF0284C7)
+                    color = if (palette.isChristmas) palette.secondaryAccent else if (isNight) Color(0xFF67E8F9) else Color(0xFF0284C7)
                 )
             } else {
                 Text(
                     text = day.conditionDescription,
                     fontSize = (12f * fontScale).sp,
-                    color = if (isNight) Color(0xFFCBD5E1) else Color(0xFF64748B),
+                    color = if (palette.isChristmas) palette.textSecondary else if (isNight) Color(0xFFCBD5E1) else Color(0xFF64748B),
                     maxLines = 1
                 )
             }
@@ -1099,7 +1111,7 @@ private fun DailyForecastRow(
             Text(
                 text = "${TemperatureFormatter.toDisplayInt(day.tempMin, temperatureUnit)}°",
                 fontSize = (14f * fontScale).sp,
-                color = if (isNight) Color(0xFF94A3B8) else Color(0xFF64748B),
+                color = palette.textSecondary,
                 fontWeight = FontWeight.Medium
             )
             Spacer(modifier = Modifier.width(8.dp))
@@ -1107,7 +1119,7 @@ private fun DailyForecastRow(
                 text = "${TemperatureFormatter.toDisplayInt(day.tempMax, temperatureUnit)}°",
                 fontSize = (15f * fontScale).sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isNight) Color.White else Color(0xFF0F172A)
+                color = palette.textPrimary
             )
         }
     }
@@ -1121,11 +1133,12 @@ private fun QuickMetricItem(
     isNight: Boolean,
     fontScale: Float = 1.0f
 ) {
+    val palette = LocalSheepWeatherPalette.current
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7),
+            tint = if (palette.isChristmas) palette.secondaryAccent else if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7),
             modifier = Modifier.size((18f * fontScale).dp)
         )
         Spacer(modifier = Modifier.height(2.dp))
@@ -1133,12 +1146,12 @@ private fun QuickMetricItem(
             text = value,
             fontSize = (13f * fontScale).sp,
             fontWeight = FontWeight.Bold,
-            color = if (isNight) Color.White else Color(0xFF0F172A)
+            color = palette.textPrimary
         )
         Text(
             text = label,
             fontSize = (10f * fontScale).sp,
-            color = if (isNight) Color(0xFF94A3B8) else Color(0xFF64748B)
+            color = palette.textSecondary
         )
     }
 }

@@ -32,23 +32,39 @@ import com.example.ui.util.computeAdaptiveUiSpec
 @Composable
 fun CartoonSheepCanvas(
     isNight: Boolean,
+    isChristmas: Boolean = false,
     isScrolling: Boolean = false,
     isLowEndDevice: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    // Background color animation transitioning after sunset to calming deep blue
+    // Background color animation transitioning after sunset to calming deep blue or festive pine
     val topColor by animateColorAsState(
-        targetValue = if (isNight) Color(0xFF0A1128) else Color(0xFF4EA8DE),
+        targetValue = when {
+            isChristmas && isNight -> Color(0xFF071A14)
+            isChristmas && !isNight -> Color(0xFF2D6A4F)
+            isNight -> Color(0xFF0A1128)
+            else -> Color(0xFF4EA8DE)
+        },
         animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
         label = "topColor"
     )
     val midColor by animateColorAsState(
-        targetValue = if (isNight) Color(0xFF1C2541) else Color(0xFF72EFDD),
+        targetValue = when {
+            isChristmas && isNight -> Color(0xFF133A2C)
+            isChristmas && !isNight -> Color(0xFF52B788)
+            isNight -> Color(0xFF1C2541)
+            else -> Color(0xFF72EFDD)
+        },
         animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
         label = "midColor"
     )
     val plainBlurColor by animateColorAsState(
-        targetValue = if (isNight) Color(0xFF0B132B) else Color(0xFFE8F1F5),
+        targetValue = when {
+            isChristmas && isNight -> Color(0xFF061510)
+            isChristmas && !isNight -> Color(0xFFFDF6EE)
+            isNight -> Color(0xFF0B132B)
+            else -> Color(0xFFE8F1F5)
+        },
         animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
         label = "plainColor"
     )
@@ -160,6 +176,7 @@ fun CartoonSheepCanvas(
                 centerY = sheepCenterY,
                 scale = sheepScale,
                 isNight = isNight,
+                isChristmas = isChristmas,
                 sleepZOffset = sleepZOffset
             )
 
@@ -190,7 +207,8 @@ internal fun DrawScope.drawCartoonSheep(
     centerY: Float,
     scale: Float,
     isNight: Boolean,
-    sleepZOffset: Float
+    sleepZOffset: Float,
+    isChristmas: Boolean = false
 ) {
     // Defined cartoon styling colors
     val outlineColor = Color(0xFF263238) // Crisp slate dark outline for definition
@@ -515,6 +533,111 @@ internal fun DrawScope.drawCartoonSheep(
         }
         drawPath(path = leftBrow, color = outlineColor, style = Stroke(width = 1.8f * scale, cap = StrokeCap.Round))
         drawPath(path = rightBrow, color = outlineColor, style = Stroke(width = 1.8f * scale, cap = StrokeCap.Round))
+    }
+
+    // 10. Optional Christmas Accessories: Cozy Striped Scarf & Pohutukawa Crimson Santa Hat
+    if (isChristmas) {
+        val crimsonRed = Color(0xFFB91C1C)
+        val pineGreen = Color(0xFF14532D)
+        val warmGold = Color(0xFFFBBF24)
+
+        // Cozy red & pine green striped scarf tucked beneath the face
+        val scarfRectTop = centerY + 29f * scale
+        val scarfRectLeft = centerX - 24f * scale
+        val scarfW = 48f * scale
+        val scarfH = 11.5f * scale
+
+        drawRoundRect(
+            color = outlineColor,
+            topLeft = Offset(scarfRectLeft - 1.5f * scale, scarfRectTop - 1.5f * scale),
+            size = Size(scarfW + 3f * scale, scarfH + 3f * scale),
+            cornerRadius = CornerRadius(6f * scale, 6f * scale)
+        )
+        drawRoundRect(
+            color = crimsonRed,
+            topLeft = Offset(scarfRectLeft, scarfRectTop),
+            size = Size(scarfW, scarfH),
+            cornerRadius = CornerRadius(5.5f * scale, 5.5f * scale)
+        )
+        // Pine green festive scarf stripes
+        val stripeOffsets = listOf(-14f, 0f, 14f)
+        stripeOffsets.forEach { sx ->
+            drawRoundRect(
+                color = pineGreen,
+                topLeft = Offset(centerX + (sx - 3f) * scale, scarfRectTop + 1f * scale),
+                size = Size(6f * scale, scarfH - 2f * scale),
+                cornerRadius = CornerRadius(2f * scale, 2f * scale)
+            )
+        }
+        // Hanging scarf tail on the right
+        drawRoundRect(
+            color = outlineColor,
+            topLeft = Offset(centerX + 8.5f * scale, scarfRectTop + 4f * scale),
+            size = Size(13f * scale, 21f * scale),
+            cornerRadius = CornerRadius(4.5f * scale, 4.5f * scale)
+        )
+        drawRoundRect(
+            color = crimsonRed,
+            topLeft = Offset(centerX + 10f * scale, scarfRectTop + 5f * scale),
+            size = Size(10f * scale, 18.5f * scale),
+            cornerRadius = CornerRadius(4f * scale, 4f * scale)
+        )
+        drawRoundRect(
+            color = pineGreen,
+            topLeft = Offset(centerX + 10f * scale, scarfRectTop + 13f * scale),
+            size = Size(10f * scale, 4.5f * scale),
+            cornerRadius = CornerRadius(1.5f * scale, 1.5f * scale)
+        )
+        // Subtle warm gold scarf trim dot
+        drawCircle(
+            color = warmGold,
+            radius = 1.6f * scale,
+            center = Offset(centerX + 15f * scale, scarfRectTop + 21f * scale)
+        )
+
+        // Pohutukawa Crimson Santa Hat perched atop crown puffs
+        val hatPath = Path().apply {
+            moveTo(centerX - 20f * scale, centerY - 22f * scale)
+            cubicTo(
+                centerX - 10f * scale, centerY - 52f * scale,
+                centerX + 14f * scale, centerY - 52f * scale,
+                centerX + 27f * scale, centerY - 29f * scale
+            )
+            lineTo(centerX + 19f * scale, centerY - 22f * scale)
+            close()
+        }
+        drawPath(
+            path = hatPath,
+            color = outlineColor,
+            style = Stroke(width = 3.2f * scale, cap = StrokeCap.Round)
+        )
+        drawPath(path = hatPath, color = crimsonRed, style = Fill)
+
+        // White fluffy hat brim
+        drawRoundRect(
+            color = outlineColor,
+            topLeft = Offset(centerX - 23.5f * scale, centerY - 26.5f * scale),
+            size = Size(45f * scale, 10.5f * scale),
+            cornerRadius = CornerRadius(5.5f * scale, 5.5f * scale)
+        )
+        drawRoundRect(
+            color = Color.White,
+            topLeft = Offset(centerX - 22f * scale, centerY - 25f * scale),
+            size = Size(42f * scale, 8f * scale),
+            cornerRadius = CornerRadius(4.5f * scale, 4.5f * scale)
+        )
+
+        // Fluffy pom-pom at hat tip
+        drawCircle(
+            color = outlineColor,
+            radius = 7.2f * scale,
+            center = Offset(centerX + 28f * scale, centerY - 29f * scale)
+        )
+        drawCircle(
+            color = Color.White,
+            radius = 5.6f * scale,
+            center = Offset(centerX + 28f * scale, centerY - 29f * scale)
+        )
     }
 }
 

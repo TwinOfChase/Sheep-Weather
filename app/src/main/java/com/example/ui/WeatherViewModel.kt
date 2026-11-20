@@ -16,6 +16,7 @@ import com.example.data.remote.GeminiWeatherService
 import com.example.data.remote.GeocodingResult
 import com.example.data.repository.WeatherRepository
 import com.example.notifications.MorningWeatherNotificationManager
+import com.example.util.AppIconManager
 import com.example.util.AppUpdateManager
 import com.example.util.LocationHelper
 import com.example.util.TemperatureFormatter
@@ -51,6 +52,8 @@ data class WeatherUiState(
     val isMorningNotificationsEnabled: Boolean = true,
     val morningNotificationHour: Int = MorningWeatherNotificationManager.DEFAULT_MORNING_HOUR,
     val morningNotificationMinute: Int = MorningWeatherNotificationManager.DEFAULT_MORNING_MINUTE,
+    val isChristmasThemeEnabled: Boolean = false,
+    val isChristmasIconEnabled: Boolean = false,
     val isSearchingCity: Boolean = false,
     val citySearchResults: List<GeocodingResult> = emptyList(),
     val currentScreen: WeatherScreen = WeatherScreen.Main,
@@ -117,7 +120,9 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             morningNotificationMinute = prefs.getInt(
                 MorningWeatherNotificationManager.KEY_MORNING_MINUTE,
                 MorningWeatherNotificationManager.DEFAULT_MORNING_MINUTE
-            )
+            ),
+            isChristmasThemeEnabled = prefs.getBoolean("christmas_theme_enabled", false),
+            isChristmasIconEnabled = prefs.getBoolean("christmas_icon_enabled", false)
         )
     )
     val uiState: StateFlow<WeatherUiState> = _uiState.asStateFlow()
@@ -344,6 +349,18 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 morningNotificationMinute = minute.coerceIn(0, 59)
             )
         }
+    }
+
+    fun setChristmasThemeEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("christmas_theme_enabled", enabled).apply()
+        _uiState.update { it.copy(isChristmasThemeEnabled = enabled) }
+    }
+
+    fun setChristmasIconEnabled(enabled: Boolean): Boolean {
+        prefs.edit().putBoolean("christmas_icon_enabled", enabled).apply()
+        val applied = AppIconManager.setChristmasIconEnabled(getApplication(), enabled)
+        _uiState.update { it.copy(isChristmasIconEnabled = enabled) }
+        return applied
     }
 
     fun previewMorningSummaryNotification(onResult: (Boolean) -> Unit = {}) {

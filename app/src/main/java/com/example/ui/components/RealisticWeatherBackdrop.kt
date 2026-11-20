@@ -26,9 +26,15 @@ import com.example.ui.util.computeAdaptiveUiSpec
 fun RealisticWeatherBackdrop(
     isNight: Boolean,
     moonInfo: MoonInfo,
+    isChristmas: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val baseBgColor = if (isNight) Color(0xFF070B19) else Color(0xFF0F172A)
+    val baseBgColor = when {
+        isChristmas && isNight -> Color(0xFF061510)
+        isChristmas && !isNight -> Color(0xFF103325)
+        isNight -> Color(0xFF070B19)
+        else -> Color(0xFF0F172A)
+    }
 
     BoxWithConstraints(
         modifier = modifier
@@ -68,15 +74,26 @@ fun RealisticWeatherBackdrop(
                 .fillMaxSize()
                 .background(
                     brush = Brush.verticalGradient(
-                        colors = if (isNight) {
-                            listOf(
+                        colors = when {
+                            isChristmas && isNight -> listOf(
+                                Color(0xFF061510).copy(alpha = 0.16f),
+                                Color(0xFF0A241B).copy(alpha = 0.46f),
+                                Color(0xFF061510).copy(alpha = 0.88f),
+                                Color(0xFF061510)
+                            )
+                            isChristmas && !isNight -> listOf(
+                                Color(0xFF103325).copy(alpha = 0.12f),
+                                Color(0xFF14402F).copy(alpha = 0.40f),
+                                Color(0xFF103325).copy(alpha = 0.88f),
+                                Color(0xFF103325)
+                            )
+                            isNight -> listOf(
                                 Color(0xFF070B19).copy(alpha = 0.14f),
                                 Color(0xFF070B19).copy(alpha = 0.42f),
                                 Color(0xFF070B19).copy(alpha = 0.88f),
                                 Color(0xFF070B19)
                             )
-                        } else {
-                            listOf(
+                            else -> listOf(
                                 Color(0xFF0F172A).copy(alpha = 0.10f),
                                 Color(0xFF1B2A47).copy(alpha = 0.36f),
                                 Color(0xFF0F172A).copy(alpha = 0.85f),

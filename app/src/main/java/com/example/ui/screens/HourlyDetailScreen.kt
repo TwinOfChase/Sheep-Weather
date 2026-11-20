@@ -64,6 +64,7 @@ import com.example.data.model.HourlyWeather
 import com.example.data.model.WeatherInfo
 import com.example.ui.components.AppCopyrightFooter
 import com.example.ui.components.ConditionIcon
+import com.example.ui.theme.LocalSheepWeatherPalette
 import com.example.util.TemperatureFormatter
 import com.example.util.TemperatureUnit
 
@@ -76,17 +77,27 @@ fun HourlyDetailScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val palette = LocalSheepWeatherPalette.current
     var selectedCondition by remember { mutableStateOf(HourlyConditionType.TEMPERATURE) }
 
-    val bgGradient = if (isNight) {
-        Brush.verticalGradient(listOf(Color(0xFF070E20), Color(0xFF0F1A36), Color(0xFF132044)))
-    } else {
-        Brush.verticalGradient(listOf(Color(0xFFEBF4FA), Color(0xFFE1EDF7), Color(0xFFD6E6F2)))
+    val bgGradient = when {
+        palette.isChristmas && isNight -> Brush.verticalGradient(
+            listOf(Color(0xFF061510), Color(0xFF0E2B20), Color(0xFF133A2C))
+        )
+        palette.isChristmas && !isNight -> Brush.verticalGradient(
+            listOf(Color(0xFFFDF6EE), Color(0xFFFAF0E4), Color(0xFFF5E6D3))
+        )
+        isNight -> Brush.verticalGradient(
+            listOf(Color(0xFF070E20), Color(0xFF0F1A36), Color(0xFF132044))
+        )
+        else -> Brush.verticalGradient(
+            listOf(Color(0xFFEBF4FA), Color(0xFFE1EDF7), Color(0xFFD6E6F2))
+        )
     }
 
-    val cardBg = if (isNight) Color(0xFF1A2649).copy(alpha = 0.85f) else Color.White.copy(alpha = 0.92f)
-    val textColor = if (isNight) Color.White else Color(0xFF0F172A)
-    val subTextColor = if (isNight) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val cardBg = palette.cardBg
+    val textColor = palette.textPrimary
+    val subTextColor = palette.textSecondary
 
     // Calculate min/max for the current selected metric across hours to draw proportional bars
     val hourlyList = weatherInfo.hourly
@@ -162,12 +173,14 @@ fun HourlyDetailScreen(
                             )
                         },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = if (isNight) Color(0xFF38BDF8) else Color(0xFF0284C7),
-                            selectedLabelColor = if (isNight) Color(0xFF0C192E) else Color.White,
-                            selectedLeadingIconColor = if (isNight) Color(0xFF0C192E) else Color.White,
-                            containerColor = if (isNight) Color(0xFF1E293B) else Color(0xFFF1F5F9),
-                            labelColor = if (isNight) Color(0xFFE2E8F0) else Color(0xFF334155),
-                            iconColor = if (isNight) Color(0xFF94A3B8) else Color(0xFF64748B)
+                            selectedContainerColor = if (palette.isChristmas) {
+                                palette.primaryAccent
+                            } else if (isNight) Color(0xFF38BDF8) else Color(0xFF0284C7),
+                            selectedLabelColor = if (isNight && !palette.isChristmas) Color(0xFF0C192E) else Color.White,
+                            selectedLeadingIconColor = if (isNight && !palette.isChristmas) Color(0xFF0C192E) else Color.White,
+                            containerColor = if (palette.isChristmas) palette.cardBg else if (isNight) Color(0xFF1E293B) else Color(0xFFF1F5F9),
+                            labelColor = if (palette.isChristmas) palette.textPrimary else if (isNight) Color(0xFFE2E8F0) else Color(0xFF334155),
+                            iconColor = if (palette.isChristmas) palette.secondaryAccent else if (isNight) Color(0xFF94A3B8) else Color(0xFF64748B)
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             borderColor = if (isSelected) Color.Transparent else if (isNight) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.08f),

@@ -36,7 +36,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-            MyApplicationTheme(darkTheme = uiState.isNightEffective, dynamicColor = false) {
+            MyApplicationTheme(
+                darkTheme = uiState.isNightEffective,
+                isChristmasEnabled = uiState.isChristmasThemeEnabled,
+                dynamicColor = false
+            ) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     AnimatedContent(
                         targetState = uiState.isSplashVisible,
@@ -48,6 +52,7 @@ class MainActivity : ComponentActivity() {
                         if (isSplash) {
                             AnimatedSplashScreen(
                                 isNight = uiState.isNightEffective,
+                                isChristmas = uiState.isChristmasThemeEnabled,
                                 isLoaded = uiState.isInitialLoadCompleted && uiState.weatherInfo != null,
                                 onAnimationFinished = { viewModel.dismissSplash() }
                             )
@@ -80,6 +85,8 @@ class MainActivity : ComponentActivity() {
                                         onPreviewMorningNotification = { onDone ->
                                             viewModel.previewMorningSummaryNotification(onDone)
                                         },
+                                        onToggleChristmasTheme = { viewModel.setChristmasThemeEnabled(it) },
+                                        onToggleChristmasIcon = { viewModel.setChristmasIconEnabled(it) },
                                         onFetchCurrentLocation = { viewModel.fetchDeviceLocation() },
                                         onCloseSettings = { viewModel.closeSettings() }
                                     )

@@ -57,6 +57,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun AnimatedSplashScreen(
     isNight: Boolean,
+    isChristmas: Boolean = false,
     isLoaded: Boolean = true,
     onAnimationFinished: () -> Unit,
     modifier: Modifier = Modifier
@@ -117,16 +118,29 @@ fun AnimatedSplashScreen(
         onAnimationFinished()
     }
 
-    val bgBrush = if (isNight) {
-        Brush.verticalGradient(
+    val bgBrush = when {
+        isChristmas && isNight -> Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFF061510),
+                Color(0xFF0E2E22),
+                Color(0xFF14402F)
+            )
+        )
+        isChristmas && !isNight -> Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFF14402F),
+                Color(0xFF2D6A4F),
+                Color(0xFFFDF6EE)
+            )
+        )
+        isNight -> Brush.verticalGradient(
             colors = listOf(
                 Color(0xFF070B19),
                 Color(0xFF0F1A36),
                 Color(0xFF16254C)
             )
         )
-    } else {
-        Brush.verticalGradient(
+        else -> Brush.verticalGradient(
             colors = listOf(
                 Color(0xFF5BA4E6),
                 Color(0xFF90CAF9),
@@ -135,8 +149,18 @@ fun AnimatedSplashScreen(
         )
     }
 
-    val textColor = if (isNight) Color.White else Color(0xFF0F172A)
-    val subTextColor = if (isNight) Color(0xFF94A3B8) else Color(0xFF475569)
+    val textColor = when {
+        isChristmas && isNight -> Color(0xFFFFF8F0)
+        isChristmas && !isNight -> Color(0xFF1A1412)
+        isNight -> Color.White
+        else -> Color(0xFF0F172A)
+    }
+    val subTextColor = when {
+        isChristmas && isNight -> Color(0xFFB5C7BE)
+        isChristmas && !isNight -> Color(0xFF5C4D42)
+        isNight -> Color(0xFF94A3B8)
+        else -> Color(0xFF475569)
+    }
 
     BoxWithConstraints(
         modifier = modifier
@@ -227,7 +251,8 @@ fun AnimatedSplashScreen(
                             centerY = h * 0.50f + breathingOffset,
                             scale = splashSheepScale,
                             isNight = isNight,
-                            sleepZOffset = sleepZOffset
+                            sleepZOffset = sleepZOffset,
+                            isChristmas = isChristmas
                         )
                     }
                 }
@@ -248,14 +273,28 @@ fun AnimatedSplashScreen(
                 Spacer(modifier = Modifier.height(if (adaptive.isTabletOrUnfolded) 10.dp else 6.dp))
 
                 Surface(
-                    color = if (isNight) Color(0xFF1E293B).copy(alpha = 0.8f) else Color.White.copy(alpha = 0.8f),
+                    color = when {
+                        isChristmas && isNight -> Color(0xFF102921).copy(alpha = 0.88f)
+                        isChristmas && !isNight -> Color(0xFFFFFBF5).copy(alpha = 0.92f)
+                        isNight -> Color(0xFF1E293B).copy(alpha = 0.8f)
+                        else -> Color.White.copy(alpha = 0.8f)
+                    },
                     shape = RoundedCornerShape(if (adaptive.isTabletOrUnfolded) 18.dp else 14.dp)
                 ) {
                     Text(
-                        text = "Version 2.7.2 • Offline First & Data Saver",
+                        text = if (isChristmas) {
+                            "Version 2.7.3 • Kirihimete Edition"
+                        } else {
+                            "Version 2.7.3 • Offline First & Data Saver"
+                        },
                         fontSize = badgeFontSize,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (isNight) Color(0xFF60A5FA) else Color(0xFF0284C7),
+                        color = when {
+                            isChristmas && isNight -> Color(0xFFFBBF24)
+                            isChristmas && !isNight -> Color(0xFFB91C1C)
+                            isNight -> Color(0xFF60A5FA)
+                            else -> Color(0xFF0284C7)
+                        },
                         modifier = Modifier.padding(
                             horizontal = if (adaptive.isTabletOrUnfolded) 18.dp else 12.dp,
                             vertical = if (adaptive.isTabletOrUnfolded) 8.dp else 6.dp
